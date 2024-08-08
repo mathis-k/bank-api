@@ -2,9 +2,10 @@ package main
 
 import (
 	"math/rand"
+	"net/http"
 )
 
-// type apiFunc func(w http.ResponseWriter, r *http.Request) error
+type apiFunc func(w http.ResponseWriter, r *http.Request) error
 type APIServer struct {
 	listenAddress string
 }
