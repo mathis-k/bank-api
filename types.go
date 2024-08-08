@@ -8,6 +8,7 @@ import (
 type apiFunc func(w http.ResponseWriter, r *http.Request) error
 type APIServer struct {
 	listenAddress string
+	storage       Storage
 }
 type APIResponse struct {
 	Message string `json:"message"`
