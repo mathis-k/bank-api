@@ -1,7 +1,16 @@
 package main
 
-import "math/rand"
+import (
+	"math/rand"
+)
 
+// type apiFunc func(w http.ResponseWriter, r *http.Request) error
+type APIServer struct {
+	listenAddress string
+}
+type APIResponse struct {
+	Message string `json:"message"`
+}
 type Account struct {
 	ID        int     `json:"id"`
 	FirstName string  `json:"first_name"`
