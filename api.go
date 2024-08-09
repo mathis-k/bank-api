@@ -37,7 +37,7 @@ func (s *APIServer) Run() {
 	log.Printf("API server is running on localhost%s ... 🚀", s.listenAddress)
 	err := http.ListenAndServe(s.listenAddress, router)
 	if err != nil {
-		log.Panicf("%w: Error starting server: %v", err, s.listenAddress)
+		log.Panicf("✖ %w: Error starting server: %v", err, s.listenAddress)
 	}
 }
 func (s *APIServer) handleStartPage(w http.ResponseWriter, r *http.Request) {
