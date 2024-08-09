@@ -2,10 +2,8 @@ package main
 
 import (
 	"math/rand"
-	"net/http"
 )
 
-type apiFunc func(w http.ResponseWriter, r *http.Request) error
 type APIServer struct {
 	listenAddress string
 	storage       Storage
@@ -13,12 +11,22 @@ type APIServer struct {
 type APIResponse struct {
 	Message string `json:"message"`
 }
+
+const welcomeMessage = `Welcome to the Bank JSON API Server! :)
+
+Available endpoints:
+GET /account - get all accounts
+POST /account - create a new account
+GET /account/{id} - get account by ID
+PUT /account/{id} - update account by ID
+DELETE /account/{id} - delete account by ID`
+
 type Account struct {
-	ID        int     `json:"id"`
+	ID        int     `json:"id"` //unique account ID
 	FirstName string  `json:"first_name"`
 	LastName  string  `json:"last_name"`
 	Email     string  `json:"email"`
-	Number    int64   `json:"number"`
+	Number    int64   `json:"number"` //unique account number
 	Balance   float64 `json:"balance"`
 }
 

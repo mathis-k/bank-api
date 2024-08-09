@@ -9,6 +9,4 @@ type Storage interface {
 }
 
 type MongoDbStorage struct {
-	// ...
-	db *mongo.Database
 }

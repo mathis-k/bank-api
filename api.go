@@ -19,28 +19,35 @@ func makeHTTPHandleFunc(f apiFunc) http.HandlerFunc {
 }
 */
 
-func NewAPIServer(listenAddress string, storage Storage) *APIServer {
+func NewAPIServer(listenAddress string) *APIServer {
 	return &APIServer{
 		listenAddress: listenAddress,
-		storage:       storage,
 	}
 }
 func (s *APIServer) Run() {
 
 	router := mux.NewRouter()
+	router.HandleFunc("/", s.handleStartPage).
+		Methods(http.MethodGet)
 	router.HandleFunc("/account", s.handleAccount).
 		Methods(http.MethodGet, http.MethodPost)
 	router.HandleFunc("/account/{id}", s.handleAccountByID).
 		Methods(http.MethodGet, http.MethodDelete, http.MethodPut)
-	http.Handle("/", router)
 
 	log.Printf("API server is running on localhost%s ... 🚀", s.listenAddress)
 	err := http.ListenAndServe(s.listenAddress, router)
 	if err != nil {
-		panic(fmt.Errorf("%w: Error starting server: %v", err, s.listenAddress))
+		log.Panicf("%w: Error starting server: %v", err, s.listenAddress)
 	}
 }
-
+func (s *APIServer) handleStartPage(w http.ResponseWriter, r *http.Request) {
+	// Set the content type to plain text
+	w.Header().Set("Content-Type", "text/plain")
+	w.WriteHeader(http.StatusOK)
+	if _, err := w.Write([]byte(welcomeMessage)); err != nil {
+		return
+	}
+}
 func (s *APIServer) handleAccount(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodPost:
@@ -81,6 +88,7 @@ func (s *APIServer) handleGetAccountByID(w http.ResponseWriter, r *http.Request)
 	id, err := strconv.Atoi(mux.Vars(r)["id"])
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
 	}
 	fmt.Printf("ID: %d\n", id)
 	account := NewAccount("John", "Doe", "john.doe@example.com")
