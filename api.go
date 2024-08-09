@@ -9,15 +9,13 @@ import (
 	"strconv"
 )
 
-/*
-func makeHTTPHandleFunc(f apiFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		if err := f(w, r); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-		}
-	}
+type APIServer struct {
+	listenAddress string
+	storage       Storage
 }
-*/
+type APIResponse struct {
+	Message string `json:"message"`
+}
 
 func NewAPIServer(listenAddress string) *APIServer {
 	return &APIServer{
@@ -118,3 +116,12 @@ func (s *APIServer) handleCreateAccount(w http.ResponseWriter, r *http.Request) 
 func (s *APIServer) handleTransfer(w http.ResponseWriter, r *http.Request) {
 	return
 }
+
+const welcomeMessage = `Welcome to the Bank JSON API Server! :)
+🏦
+Available endpoints:
+GET /account - get all accounts
+POST /account - create a new account
+GET /account/{id} - get account by ID
+PUT /account/{id} - update account by ID
+DELETE /account/{id} - delete account by ID`

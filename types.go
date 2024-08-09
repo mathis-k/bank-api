@@ -1,33 +1,19 @@
 package main
 
 import (
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"math/rand"
+	"time"
 )
 
-type APIServer struct {
-	listenAddress string
-	storage       Storage
-}
-type APIResponse struct {
-	Message string `json:"message"`
-}
-
-const welcomeMessage = `Welcome to the Bank JSON API Server! :)
-
-Available endpoints:
-GET /account - get all accounts
-POST /account - create a new account
-GET /account/{id} - get account by ID
-PUT /account/{id} - update account by ID
-DELETE /account/{id} - delete account by ID`
-
 type Account struct {
-	ID        int     `json:"id"` //unique account ID
-	FirstName string  `json:"first_name"`
-	LastName  string  `json:"last_name"`
-	Email     string  `json:"email"`
-	Number    int64   `json:"number"` //unique account number
-	Balance   float64 `json:"balance"`
+	ID            primitive.ObjectID `bson:"_id" json:"id"`
+	AccountNumber int64              `bson:"account_number" json:"account_number"`
+	Balance       float64            `bson:"balance" json:"balance"`
+	FirstName     string             `bson:"first_name" json:"first_name"`
+	LastName      string             `bson:"last_name" json:"last_name"`
+	Email         string             `bson:"email" json:"email"`
+	CreatedAt     time.Time          `bson:"created_at" json:"created_at"`
 }
 
 func NewAccount(firstName, lastName, email string, balance ...float64) *Account {
@@ -38,11 +24,11 @@ func NewAccount(firstName, lastName, email string, balance ...float64) *Account 
 		initialBalance = 0
 	}
 	return &Account{
-		ID:        rand.Intn(1000),
-		FirstName: firstName,
-		LastName:  lastName,
-		Email:     email,
-		Number:    int64(rand.Intn(1000000)),
-		Balance:   initialBalance,
+		FirstName:     firstName,
+		LastName:      lastName,
+		Email:         email,
+		AccountNumber: int64(rand.Intn(1000000)),
+		Balance:       initialBalance,
+		CreatedAt:     time.Now(),
 	}
 }
