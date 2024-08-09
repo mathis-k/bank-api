@@ -7,3 +7,8 @@ type Storage interface {
 	DeleteAccount(id int) error
 	UpdateAccount(id int, a *Account) error
 }
+
+type MongoDbStorage struct {
+	// ...
+	db *mongo.Database
+}

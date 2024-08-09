@@ -19,9 +19,10 @@ func makeHTTPHandleFunc(f apiFunc) http.HandlerFunc {
 }
 */
 
-func NewAPIServer(listenAddress string) *APIServer {
+func NewAPIServer(listenAddress string, storage Storage) *APIServer {
 	return &APIServer{
 		listenAddress: listenAddress,
+		storage:       storage,
 	}
 }
 func (s *APIServer) Run() {
@@ -31,6 +32,7 @@ func (s *APIServer) Run() {
 		Methods(http.MethodGet, http.MethodPost)
 	router.HandleFunc("/account/{id}", s.handleAccountByID).
 		Methods(http.MethodGet, http.MethodDelete, http.MethodPut)
+	http.Handle("/", router)
 
 	log.Printf("API server is running on localhost%s ... 🚀", s.listenAddress)
 	err := http.ListenAndServe(s.listenAddress, router)
