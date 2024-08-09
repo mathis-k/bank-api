@@ -1,8 +1,9 @@
-package main
+package db
 
 import (
 	"context"
 	"github.com/joho/godotenv"
+	"github.com/mathis-k/bank-api/models"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"log"
@@ -10,20 +11,12 @@ import (
 	"time"
 )
 
-type Storage interface {
-	CreateAccount(a *Account) error
-	GetAccounts() ([]*Account, error)
-	GetAccountByID(id int) (*Account, error)
-	DeleteAccount(id int) error
-	UpdateAccount(id int, a *Account) error
-}
-
-type MongoDBStorage struct {
-	client *mongo.Client
+type MongoDB struct {
+	Client *mongo.Client
 	db     *mongo.Database
 }
 
-func (m *MongoDBStorage) Connect() error {
+func (m *MongoDB) Connect() error {
 	if err := godotenv.Load(); err != nil {
 		log.Println("✖ No .env file found")
 	}
@@ -40,25 +33,45 @@ func (m *MongoDBStorage) Connect() error {
 			panic(err)
 		}
 	}()
-	m.client = client
+	m.Client = client
 	m.db = client.Database("TestDB")
 	log.Println("✔ Sucessfully Connected to MongoDB")
 	return nil
 }
 
-func (m *MongoDBStorage) isConnected() bool {
-	if m.db == nil || m.client == nil {
+func (m *MongoDB) isConnected() bool {
+	if m.db == nil || m.Client == nil {
 		log.Println("⚠ MongoDB connection is not established")
 		return false
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
-	if err := m.client.Ping(ctx, nil); err != nil {
+	if err := m.Client.Ping(ctx, nil); err != nil {
 		log.Println("⚠ MongoDB connection is not established")
 		return false
 	} else {
 		log.Println("ℹ MongoDB connection is established")
 		return true
 	}
+}
+
+func (m *MongoDB) CreateAccount(a *models.Account) error {
+	return nil
+}
+
+func (m *MongoDB) GetAccounts() ([]*models.Account, error) {
+	return nil, nil
+}
+
+func (m *MongoDB) GetAccountByID(id int) (*models.Account, error) {
+	return nil, nil
+}
+
+func (m *MongoDB) DeleteAccount(id int) error {
+	return nil
+}
+
+func (m *MongoDB) UpdateAccount(id int, a *models.Account) error {
+	return nil
 }

@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/gorilla/mux"
+	"github.com/mathis-k/bank-api/db"
+	"github.com/mathis-k/bank-api/models"
 	"log"
 	"net/http"
 	"strconv"
@@ -11,15 +13,21 @@ import (
 
 type APIServer struct {
 	listenAddress string
-	storage       Storage
+	database      models.Database
 }
 type APIResponse struct {
 	Message string `json:"message"`
 }
 
 func NewAPIServer(listenAddress string) *APIServer {
+	database := &db.MongoDB{}
+	if err := database.Connect(); err != nil {
+		panic("")
+	}
+
 	return &APIServer{
 		listenAddress: listenAddress,
+		database:      database,
 	}
 }
 func (s *APIServer) Run() {
@@ -71,14 +79,10 @@ func (s *APIServer) handleAccountByID(w http.ResponseWriter, r *http.Request) {
 	}
 }
 func (s *APIServer) handleGetAccounts(w http.ResponseWriter, r *http.Request) {
-	accounts := []Account{
-		*NewAccount("John", "Doe", "john.doe@example.com"),
-		*NewAccount("Jane", "Doe", "jane.doe@example.com"),
-	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	if err := json.NewEncoder(w).Encode(accounts); err != nil {
+	if err := json.NewEncoder(w).Encode(""); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
@@ -88,12 +92,10 @@ func (s *APIServer) handleGetAccountByID(w http.ResponseWriter, r *http.Request)
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	fmt.Printf("ID: %d\n", id)
-	account := NewAccount("John", "Doe", "john.doe@example.com")
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	if err := json.NewEncoder(w).Encode(account); err != nil {
+	if err := json.NewEncoder(w).Encode(id); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }

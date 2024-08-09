@@ -1,8 +1,7 @@
-package main
+package models
 
 import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"math/rand"
 	"time"
 )
 
@@ -16,6 +15,7 @@ type Account struct {
 	CreatedAt     time.Time          `bson:"created_at" json:"created_at"`
 }
 
+/*
 func NewAccount(firstName, lastName, email string, balance ...float64) *Account {
 	var initialBalance float64
 	if len(balance) > 0 {
@@ -32,3 +32,4 @@ func NewAccount(firstName, lastName, email string, balance ...float64) *Account 
 		CreatedAt:     time.Now(),
 	}
 }
+*/
