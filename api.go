@@ -136,6 +136,7 @@ func (s *APIServer) handleDeleteAccount(w http.ResponseWriter, r *http.Request) 
 	}
 	jsonMessage(w, http.StatusOK, fmt.Sprintf("Account with ID: %d deleted successfully!", id))
 }
+
 func (s *APIServer) handleCreateAccount(w http.ResponseWriter, r *http.Request) {
 	var req models.AccountRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
