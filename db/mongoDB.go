@@ -21,6 +21,7 @@ type MongoDB struct {
 
 const MaxAttempts = 3 /* Maximum number of attempts to generate a unique account number */
 const ConnectionWarningTimeOut = 2 * time.Second
+const GetTimeOut = 5 * time.Second
 
 func (m *MongoDB) Connect() error {
 	if err := godotenv.Load(); err != nil {
@@ -106,30 +107,34 @@ func (m *MongoDB) GetAllAccounts() ([]*models.Account, error) {
 	if !m.isConnected() {
 		return nil, fmt.Errorf("MongoDB connection is not active")
 	}
+
 	collection := m.db.Collection("accounts")
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), GetTimeOut)
 	defer cancel()
 
-	cursor, err := collection.Find(ctx, nil)
+	cursor, err := collection.Find(ctx, bson.M{})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error finding accounts: %v", err)
 	}
-	defer func(cursor *mongo.Cursor, ctx context.Context) {
-		err := cursor.Close(ctx)
-		if err != nil {
-			log.Println("⚠ Getting All Accounts From MongoDB: Error closing cursor")
+	defer func() {
+		if closeErr := cursor.Close(ctx); closeErr != nil {
+			log.Println("⚠ Error closing cursor:", closeErr)
 		}
-	}(cursor, ctx)
+	}()
 
 	var accounts []*models.Account
 	for cursor.Next(ctx) {
 		var account models.Account
 		if err := cursor.Decode(&account); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("error decoding account: %v", err)
 		}
 		accounts = append(accounts, &account)
-
 	}
+
+	if err := cursor.Err(); err != nil {
+		return nil, fmt.Errorf("cursor encountered an error: %v", err)
+	}
+
 	return accounts, nil
 }
 
@@ -137,19 +142,19 @@ func (m *MongoDB) GetAccountByID(id int) (*models.Account, error) {
 	if !m.isConnected() {
 		return nil, fmt.Errorf("MongoDB connection is not active")
 	}
-	return nil, nil
+	return nil, fmt.Errorf("not implemented")
 }
 
 func (m *MongoDB) DeleteAccount(id int) error {
 	if !m.isConnected() {
 		return fmt.Errorf("MongoDB connection is not active")
 	}
-	return nil
+	return fmt.Errorf("not implemented")
 }
 
 func (m *MongoDB) UpdateAccount(id int, a *models.Account) error {
 	if !m.isConnected() {
 		return fmt.Errorf("MongoDB connection is not active")
 	}
-	return nil
+	return fmt.Errorf("not implemented")
 }

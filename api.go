@@ -88,9 +88,21 @@ func (s *APIServer) handleAccountByID(w http.ResponseWriter, r *http.Request) {
 }
 func (s *APIServer) handleGetAccounts(w http.ResponseWriter, r *http.Request) {
 
+	accounts, err := s.database.GetAllAccounts()
+	if err != nil {
+		json_message(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	if len(accounts) == 0 {
+		json_message(w, http.StatusNoContent, "No accounts found")
+		return
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	if err := json.NewEncoder(w).Encode(""); err != nil {
+
+	if err := json.NewEncoder(w).Encode(accounts); err != nil {
 		json_message(w, http.StatusInternalServerError, err.Error())
 	}
 }
