@@ -112,9 +112,9 @@ func (s *APIServer) handleGetAccountByID(w http.ResponseWriter, r *http.Request)
 	id := mux.Vars(r)["id"]
 	account, err := s.database.GetAccountByID(id)
 	if err != nil {
-		if err.Error() == "account not found" {
+		if err.Error() == db.NoAccountFound {
 			jsonMessage(w, http.StatusNotFound, err.Error())
-		} else if err.Error() == "invalid id" {
+		} else if err.Error() == db.InvalidID {
 			jsonMessage(w, http.StatusBadRequest, err.Error())
 		} else {
 			jsonMessage(w, http.StatusInternalServerError, err.Error())
@@ -137,7 +137,7 @@ func (s *APIServer) handleDeleteAccount(w http.ResponseWriter, r *http.Request) 
 	jsonMessage(w, http.StatusOK, fmt.Sprintf("Account with ID: %d deleted successfully!", id))
 }
 func (s *APIServer) handleCreateAccount(w http.ResponseWriter, r *http.Request) {
-	var req models.CreateAccountRequest
+	var req models.AccountRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		jsonMessage(w, http.StatusBadRequest, err.Error())
 		return
@@ -153,14 +153,8 @@ func (s *APIServer) handleCreateAccount(w http.ResponseWriter, r *http.Request) 
 		jsonMessage(w, http.StatusBadRequest, "Missing Email")
 		return
 	}
-
-	account, err := models.NewAccount(&req)
+	account, err := s.database.CreateAccount(&req)
 	if err != nil {
-		jsonMessage(w, http.StatusBadRequest, err.Error())
-		return
-	}
-
-	if err := s.database.CreateAccount(account); err != nil {
 		if err.Error() == fmt.Sprintf("an account with the email %s already exists", req.Email) {
 			jsonMessage(w, http.StatusConflict, err.Error())
 		} else {

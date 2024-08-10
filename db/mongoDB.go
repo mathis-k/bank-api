@@ -20,6 +20,8 @@ type MongoDB struct {
 	db     *mongo.Database
 }
 
+var _ models.Database = (*MongoDB)(nil)
+
 const MaxAttempts = 3 /* Maximum number of attempts to generate a unique account number */
 const ConnectionWarningTimeOut = 2 * time.Second
 const GetTimeOut = 5 * time.Second
@@ -28,6 +30,7 @@ const CheckConnectionTimeOut = 2 * time.Second
 
 const DataBaseNotActive = "MongoDB connection is not active"
 const InvalidID = "invalid id"
+const NoAccountFound = "no account found"
 
 func (m *MongoDB) Connect() error {
 	if err := godotenv.Load(); err != nil {
@@ -72,10 +75,16 @@ func (m *MongoDB) isConnected() bool {
 	}
 }
 
-func (m *MongoDB) CreateAccount(a *models.Account) error {
+func (m *MongoDB) CreateAccount(req *models.AccountRequest) (*models.Account, error) {
 	if !m.isConnected() {
-		return fmt.Errorf(DataBaseNotActive)
+		return nil, fmt.Errorf(DataBaseNotActive)
 	}
+
+	a, err2 := models.NewAccount(req)
+	if err2 != nil {
+		return nil, err2
+	}
+
 	collection := m.db.Collection("accounts")
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -83,10 +92,9 @@ func (m *MongoDB) CreateAccount(a *models.Account) error {
 	var existingAccount models.Account
 	err := collection.FindOne(ctx, bson.M{"email": a.Email}).Decode(&existingAccount)
 	if err == nil {
-		return fmt.Errorf("an account with the email %s already exists", a.Email)
-	}
-	if !errors.Is(err, mongo.ErrNoDocuments) {
-		return err
+		return nil, fmt.Errorf("an account with the email %s already exists", a.Email)
+	} else if !errors.Is(err, mongo.ErrNoDocuments) {
+		return nil, err
 	}
 
 	for i := 0; i < MaxAttempts; i++ {
@@ -98,15 +106,15 @@ func (m *MongoDB) CreateAccount(a *models.Account) error {
 			break
 		}
 		if i == MaxAttempts-1 {
-			return fmt.Errorf("could not generate a unique account number after %d attempts, please try again", MaxAttempts)
+			return nil, fmt.Errorf("could not generate a unique account number after %d attempts, please try again", MaxAttempts)
 		}
 	}
 
-	_, err2 := collection.InsertOne(ctx, a)
-	if err2 != nil {
-		return err2
+	_, err3 := collection.InsertOne(ctx, a)
+	if err3 != nil {
+		return nil, err3
 	}
-	return nil
+	return a, nil
 }
 
 func (m *MongoDB) GetAllAccounts() ([]*models.Account, error) {
@@ -176,23 +184,23 @@ func (m *MongoDB) GetAccountByID(id string) (*models.Account, error) {
 			return nil, fmt.Errorf("error decoding account: %v", err)
 		}
 	} else {
-		return nil, fmt.Errorf("account not found")
+		return nil, fmt.Errorf(NoAccountFound)
 	}
 	return &account, nil
 }
 
-func (m *MongoDB) DeleteAccount(id string) error {
+func (m *MongoDB) DeleteAccount(id string) (*models.Account, error) {
 	if !m.isConnected() {
-		return fmt.Errorf(DataBaseNotActive)
+		return nil, fmt.Errorf(DataBaseNotActive)
 	}
-	return fmt.Errorf("not implemented")
+	return nil, fmt.Errorf("not implemented")
 }
 
-func (m *MongoDB) UpdateAccount(id string, a *models.Account) error {
+func (m *MongoDB) UpdateAccount(id string, req *models.AccountRequest) (*models.Account, error) {
 	if !m.isConnected() {
-		return fmt.Errorf(DataBaseNotActive)
+		return nil, fmt.Errorf(DataBaseNotActive)
 	}
-	return fmt.Errorf("not implemented")
+	return nil, fmt.Errorf("not implemented")
 }
 
 func (m *MongoDB) Close() {

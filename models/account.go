@@ -19,7 +19,7 @@ type Account struct {
 	CreatedAt     time.Time          `bson:"created_at" json:"created_at"`
 }
 
-type CreateAccountRequest struct {
+type AccountRequest struct {
 	FirstName string `bson:"first_name" json:"first_name"`
 	LastName  string `bson:"last_name" json:"last_name"`
 	Email     string `bson:"email" json:"email"`
@@ -29,14 +29,13 @@ const MaxNameLength = 50
 const MinNameLength = 2
 const MaxEmailLength = 100
 const MinEmailLength = 6
+const InvalidFirstName = "invalid first name"
+const InvalidLastName = "invalid last name"
+const InvalidEmail = "invalid email"
 
-func NewAccount(req *CreateAccountRequest) (*Account, error) {
-	if !isValidName(req.FirstName) || !isValidLength(req.FirstName, MinNameLength, MaxNameLength) {
-		return nil, fmt.Errorf("invalid first name")
-	} else if !isValidName(req.LastName) || !isValidLength(req.LastName, MinNameLength, MaxNameLength) {
-		return nil, fmt.Errorf("invalid last name")
-	} else if !isValidEmail(req.Email) || !isValidLength(req.Email, MinEmailLength, MaxEmailLength) {
-		return nil, fmt.Errorf("invalid email")
+func NewAccount(req *AccountRequest) (*Account, error) {
+	if err := IsValidAccountRequest(req); err != nil {
+		return nil, err
 	}
 	return &Account{
 		ID:            primitive.NewObjectID(),
@@ -48,25 +47,17 @@ func NewAccount(req *CreateAccountRequest) (*Account, error) {
 		CreatedAt:     time.Now(),
 	}, nil
 }
-func UpdateAccount(id string, req *CreateAccountRequest) (*Account, error) {
+func IsValidAccountRequest(req *AccountRequest) error {
 	if !isValidName(req.FirstName) || !isValidLength(req.FirstName, MinNameLength, MaxNameLength) {
-		return nil, fmt.Errorf("invalid first name")
+		return fmt.Errorf(InvalidFirstName)
 	} else if !isValidName(req.LastName) || !isValidLength(req.LastName, MinNameLength, MaxNameLength) {
-		return nil, fmt.Errorf("invalid last name")
+		return fmt.Errorf(InvalidLastName)
 	} else if !isValidEmail(req.Email) || !isValidLength(req.Email, MinEmailLength, MaxEmailLength) {
-		return nil, fmt.Errorf("invalid email")
+		return fmt.Errorf(InvalidEmail)
 	}
-	_id, err := primitive.ObjectIDFromHex(id)
-	if err != nil {
-		return nil, fmt.Errorf("invalid id")
-	}
-	return &Account{
-		ID:        _id,
-		FirstName: req.FirstName,
-		LastName:  req.LastName,
-		Email:     req.Email,
-	}, nil
+	return nil
 }
+
 func GenerateUniqueAccountNumber() int64 {
 	rand.Seed(time.Now().UnixNano())
 	return int64(rand.Intn(10000000000))
