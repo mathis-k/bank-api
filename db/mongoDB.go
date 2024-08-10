@@ -22,6 +22,8 @@ type MongoDB struct {
 const MaxAttempts = 3 /* Maximum number of attempts to generate a unique account number */
 const ConnectionWarningTimeOut = 2 * time.Second
 const GetTimeOut = 5 * time.Second
+const CloseTimeOut = 5 * time.Second
+const CheckConnectionTimeOut = 2 * time.Second
 
 func (m *MongoDB) Connect() error {
 	if err := godotenv.Load(); err != nil {
@@ -56,7 +58,7 @@ func (m *MongoDB) isConnected() bool {
 	if m.db == nil || m.Client == nil {
 		return false
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), CheckConnectionTimeOut)
 	defer cancel()
 
 	if err := m.Client.Ping(ctx, nil); err != nil {
@@ -138,23 +140,35 @@ func (m *MongoDB) GetAllAccounts() ([]*models.Account, error) {
 	return accounts, nil
 }
 
-func (m *MongoDB) GetAccountByID(id int) (*models.Account, error) {
+func (m *MongoDB) GetAccountByID(id string) (*models.Account, error) {
 	if !m.isConnected() {
 		return nil, fmt.Errorf("MongoDB connection is not active")
 	}
 	return nil, fmt.Errorf("not implemented")
 }
 
-func (m *MongoDB) DeleteAccount(id int) error {
+func (m *MongoDB) DeleteAccount(id string) error {
 	if !m.isConnected() {
 		return fmt.Errorf("MongoDB connection is not active")
 	}
 	return fmt.Errorf("not implemented")
 }
 
-func (m *MongoDB) UpdateAccount(id int, a *models.Account) error {
+func (m *MongoDB) UpdateAccount(id string, a *models.Account) error {
 	if !m.isConnected() {
 		return fmt.Errorf("MongoDB connection is not active")
 	}
 	return fmt.Errorf("not implemented")
+}
+
+func (m *MongoDB) Close() {
+	if m.Client != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), CloseTimeOut)
+		defer cancel()
+		if err := m.Client.Disconnect(ctx); err != nil {
+			log.Println("✖ Error disconnecting from MongoDB")
+		} else {
+			log.Println("✔ Successfully disconnected from MongoDB")
+		}
+	}
 }
