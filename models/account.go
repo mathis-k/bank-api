@@ -25,12 +25,17 @@ type CreateAccountRequest struct {
 	Email     string `bson:"email" json:"email"`
 }
 
+const MaxNameLength = 50
+const MinNameLength = 2
+const MaxEmailLength = 100
+const MinEmailLength = 6
+
 func NewAccount(req *CreateAccountRequest) (*Account, error) {
-	if !isValidName(req.FirstName) || !isValidLength(req.FirstName, 2, 50) {
+	if !isValidName(req.FirstName) || !isValidLength(req.FirstName, MinNameLength, MaxNameLength) {
 		return nil, fmt.Errorf("invalid first name")
-	} else if !isValidName(req.LastName) || !isValidLength(req.LastName, 2, 50) {
+	} else if !isValidName(req.LastName) || !isValidLength(req.LastName, MinNameLength, MaxNameLength) {
 		return nil, fmt.Errorf("invalid last name")
-	} else if !isValidEmail(req.Email) || !isValidLength(req.Email, 2, 50) {
+	} else if !isValidEmail(req.Email) || !isValidLength(req.Email, MinEmailLength, MaxEmailLength) {
 		return nil, fmt.Errorf("invalid email")
 	}
 	return &Account{
@@ -43,7 +48,25 @@ func NewAccount(req *CreateAccountRequest) (*Account, error) {
 		CreatedAt:     time.Now(),
 	}, nil
 }
-
+func UpdateAccount(id string, req *CreateAccountRequest) (*Account, error) {
+	if !isValidName(req.FirstName) || !isValidLength(req.FirstName, MinNameLength, MaxNameLength) {
+		return nil, fmt.Errorf("invalid first name")
+	} else if !isValidName(req.LastName) || !isValidLength(req.LastName, MinNameLength, MaxNameLength) {
+		return nil, fmt.Errorf("invalid last name")
+	} else if !isValidEmail(req.Email) || !isValidLength(req.Email, MinEmailLength, MaxEmailLength) {
+		return nil, fmt.Errorf("invalid email")
+	}
+	_id, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return nil, fmt.Errorf("invalid id")
+	}
+	return &Account{
+		ID:        _id,
+		FirstName: req.FirstName,
+		LastName:  req.LastName,
+		Email:     req.Email,
+	}, nil
+}
 func GenerateUniqueAccountNumber() int64 {
 	rand.Seed(time.Now().UnixNano())
 	return int64(rand.Intn(10000000000))

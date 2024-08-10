@@ -7,6 +7,7 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/mathis-k/bank-api/models"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"log"
@@ -24,6 +25,9 @@ const ConnectionWarningTimeOut = 2 * time.Second
 const GetTimeOut = 5 * time.Second
 const CloseTimeOut = 5 * time.Second
 const CheckConnectionTimeOut = 2 * time.Second
+
+const DataBaseNotActive = "MongoDB connection is not active"
+const InvalidID = "invalid id"
 
 func (m *MongoDB) Connect() error {
 	if err := godotenv.Load(); err != nil {
@@ -70,7 +74,7 @@ func (m *MongoDB) isConnected() bool {
 
 func (m *MongoDB) CreateAccount(a *models.Account) error {
 	if !m.isConnected() {
-		return fmt.Errorf("MongoDB connection is not active")
+		return fmt.Errorf(DataBaseNotActive)
 	}
 	collection := m.db.Collection("accounts")
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -107,7 +111,7 @@ func (m *MongoDB) CreateAccount(a *models.Account) error {
 
 func (m *MongoDB) GetAllAccounts() ([]*models.Account, error) {
 	if !m.isConnected() {
-		return nil, fmt.Errorf("MongoDB connection is not active")
+		return nil, fmt.Errorf(DataBaseNotActive)
 	}
 
 	collection := m.db.Collection("accounts")
@@ -142,21 +146,51 @@ func (m *MongoDB) GetAllAccounts() ([]*models.Account, error) {
 
 func (m *MongoDB) GetAccountByID(id string) (*models.Account, error) {
 	if !m.isConnected() {
-		return nil, fmt.Errorf("MongoDB connection is not active")
+		return nil, fmt.Errorf(DataBaseNotActive)
 	}
-	return nil, fmt.Errorf("not implemented")
+	_id, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return nil, fmt.Errorf(InvalidID)
+	}
+
+	collection := m.db.Collection("accounts")
+
+	ctx, cancel := context.WithTimeout(context.Background(), GetTimeOut)
+	defer cancel()
+
+	cursor, err := collection.Find(ctx, bson.M{
+		"_id": _id,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("error finding account: %v", err)
+	}
+	defer func() {
+		if closeErr := cursor.Close(ctx); closeErr != nil {
+			log.Println("⚠ Error closing cursor:", closeErr, "whilst trying to fetch account for id:", id, "from MongoDB")
+		}
+	}()
+
+	var account models.Account
+	if cursor.Next(ctx) {
+		if err := cursor.Decode(&account); err != nil {
+			return nil, fmt.Errorf("error decoding account: %v", err)
+		}
+	} else {
+		return nil, fmt.Errorf("account not found")
+	}
+	return &account, nil
 }
 
 func (m *MongoDB) DeleteAccount(id string) error {
 	if !m.isConnected() {
-		return fmt.Errorf("MongoDB connection is not active")
+		return fmt.Errorf(DataBaseNotActive)
 	}
 	return fmt.Errorf("not implemented")
 }
 
 func (m *MongoDB) UpdateAccount(id string, a *models.Account) error {
 	if !m.isConnected() {
-		return fmt.Errorf("MongoDB connection is not active")
+		return fmt.Errorf(DataBaseNotActive)
 	}
 	return fmt.Errorf("not implemented")
 }

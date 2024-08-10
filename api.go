@@ -109,15 +109,22 @@ func (s *APIServer) handleGetAccounts(w http.ResponseWriter, r *http.Request) {
 	}
 }
 func (s *APIServer) handleGetAccountByID(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.Atoi(mux.Vars(r)["id"])
+	id := mux.Vars(r)["id"]
+	account, err := s.database.GetAccountByID(id)
 	if err != nil {
-		jsonMessage(w, http.StatusBadRequest, err.Error())
+		if err.Error() == "account not found" {
+			jsonMessage(w, http.StatusNotFound, err.Error())
+		} else if err.Error() == "invalid id" {
+			jsonMessage(w, http.StatusBadRequest, err.Error())
+		} else {
+			jsonMessage(w, http.StatusInternalServerError, err.Error())
+		}
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	if err := json.NewEncoder(w).Encode(id); err != nil {
+	if err := json.NewEncoder(w).Encode(account); err != nil {
 		jsonMessage(w, http.StatusInternalServerError, err.Error())
 	}
 }
