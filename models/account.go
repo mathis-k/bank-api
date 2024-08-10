@@ -35,7 +35,7 @@ func NewAccount(req *CreateAccountRequest) (*Account, error) {
 	}
 	return &Account{
 		ID:            primitive.NewObjectID(),
-		AccountNumber: generateUniqueAccountNumber(),
+		AccountNumber: GenerateUniqueAccountNumber(),
 		Balance:       0.0,
 		FirstName:     req.FirstName,
 		LastName:      req.LastName,
@@ -44,7 +44,7 @@ func NewAccount(req *CreateAccountRequest) (*Account, error) {
 	}, nil
 }
 
-func generateUniqueAccountNumber() int64 {
+func GenerateUniqueAccountNumber() int64 {
 	rand.Seed(time.Now().UnixNano())
 	return int64(rand.Intn(10000000000))
 }
@@ -61,6 +61,7 @@ func isValidEmail(email string) bool {
 	re := regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
 	return re.MatchString(email)
 }
+
 func isValidLength(value string, min, max int) bool {
 	length := len(value)
 	return length >= min && length <= max

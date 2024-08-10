@@ -19,27 +19,35 @@ type MongoDB struct {
 	db     *mongo.Database
 }
 
+const MaxAttempts = 3 /* Maximum number of attempts to generate a unique account number */
+const ConnectionWarningTimeOut = 2 * time.Second
+
 func (m *MongoDB) Connect() error {
 	if err := godotenv.Load(); err != nil {
 		log.Println("✖ No .env file found")
 	}
+
 	uri := os.Getenv("MONGODB_URI")
 	database := os.Getenv("MONGODB_DB")
-	client, err := mongo.Connect(context.TODO(), options.Client().
-		ApplyURI(uri))
+
+	startTime := time.Now()
+
+	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(uri))
 	if err != nil {
 		log.Println("✖ Error connecting to MongoDB")
 		return err
 	}
-	// defer func() {
-	//    if err := client.Disconnect(context.TODO()); err != nil {
-	//        log.Println("✖ Error disconnecting from MongoDB")
-	//        panic(err)
-	//    }
-	// }()
+
+	elapsedTime := time.Since(startTime)
+
+	if elapsedTime > ConnectionWarningTimeOut {
+		log.Printf("⚠ Connection to MongoDB is taking longer than expected: %v", elapsedTime)
+	}
+
 	m.Client = client
 	m.db = client.Database(database)
-	log.Println("✔ Sucessfully Connected to MongoDB")
+	log.Println("✔ Successfully Connected to MongoDB")
+
 	return nil
 }
 
@@ -72,6 +80,19 @@ func (m *MongoDB) CreateAccount(a *models.Account) error {
 	}
 	if !errors.Is(err, mongo.ErrNoDocuments) {
 		return err
+	}
+
+	for i := 0; i < MaxAttempts; i++ {
+		a.AccountNumber = models.GenerateUniqueAccountNumber()
+
+		var existingAccountByNumber models.Account
+		err := collection.FindOne(ctx, bson.M{"account_number": a.AccountNumber}).Decode(&existingAccountByNumber)
+		if err == mongo.ErrNoDocuments {
+			break
+		}
+		if i == MaxAttempts-1 {
+			return fmt.Errorf("could not generate a unique account number after %d attempts, please try again", MaxAttempts)
+		}
 	}
 
 	_, err2 := collection.InsertOne(ctx, a)
