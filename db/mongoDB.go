@@ -26,6 +26,7 @@ const GetTimeOut = 5 * time.Second
 const InsertTimeOut = 5 * time.Second
 const CloseTimeOut = 5 * time.Second
 const CheckConnectionTimeOut = 2 * time.Second
+const DeleteTimeOut = 5 * time.Second
 
 const DataBaseNotActive = "MongoDB connection is not active"
 const InvalidID = "invalid id"
@@ -192,7 +193,27 @@ func (m *MongoDB) DeleteAccount(id string) (*models.Account, error) {
 	if !m.isConnected() {
 		return nil, fmt.Errorf(DataBaseNotActive)
 	}
-	return nil, fmt.Errorf("not implemented")
+	_id, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return nil, fmt.Errorf(InvalidID)
+	}
+
+	collection := m.db.Collection("accounts")
+	ctx, cancel := context.WithTimeout(context.Background(), DeleteTimeOut)
+	defer cancel()
+
+	var account models.Account
+
+	err = collection.FindOneAndDelete(ctx, bson.M{"_id": _id}).Decode(&account)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, fmt.Errorf(NoAccountFound)
+		} else {
+			return nil, fmt.Errorf("error deleting account: %v", err)
+		}
+	}
+
+	return &account, nil
 }
 
 func (m *MongoDB) UpdateAccount(id string, req *models.AccountRequest) (*models.Account, error) {
@@ -218,7 +239,10 @@ func (m *MongoDB) UpdateAccount(id string, req *models.AccountRequest) (*models.
 	var existingAccount models.Account
 	err = collection.FindOne(ctx, bson.M{"_id": _id}).Decode(&existingAccount)
 	if err != nil {
-		return nil, fmt.Errorf(NoAccountFound)
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, fmt.Errorf(NoAccountFound)
+		}
+		return nil, fmt.Errorf("error finding account: %v", err)
 	}
 
 	if req.FirstName != "" {

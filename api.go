@@ -159,7 +159,23 @@ func (s *APIServer) handleUpdateAccount(w http.ResponseWriter, r *http.Request) 
 
 func (s *APIServer) handleDeleteAccount(w http.ResponseWriter, r *http.Request) {
 	id := mux.Vars(r)["id"]
-	jsonMessage(w, http.StatusOK, fmt.Sprintf("Account with ID: %v deleted successfully!", id))
+	account, err := s.database.DeleteAccount(id)
+	if err != nil {
+		if err.Error() == db.NoAccountFound {
+			jsonMessage(w, http.StatusNotFound, err.Error())
+		} else if err.Error() == db.InvalidID {
+			jsonMessage(w, http.StatusBadRequest, err.Error())
+		} else {
+			jsonMessage(w, http.StatusInternalServerError, err.Error())
+		}
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(w).Encode(account); err != nil {
+		jsonMessage(w, http.StatusInternalServerError, err.Error())
+		return
+	}
 }
 
 func (s *APIServer) handleCreateAccount(w http.ResponseWriter, r *http.Request) {
