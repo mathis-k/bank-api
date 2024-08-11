@@ -8,7 +8,6 @@ import (
 	"github.com/mathis-k/bank-api/models"
 	"log"
 	"net/http"
-	"strconv"
 )
 
 type APIServer struct {
@@ -159,12 +158,8 @@ func (s *APIServer) handleUpdateAccount(w http.ResponseWriter, r *http.Request) 
 }
 
 func (s *APIServer) handleDeleteAccount(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.Atoi(mux.Vars(r)["id"])
-	if err != nil {
-		jsonMessage(w, http.StatusBadRequest, err.Error())
-		return
-	}
-	jsonMessage(w, http.StatusOK, fmt.Sprintf("Account with ID: %d deleted successfully!", id))
+	id := mux.Vars(r)["id"]
+	jsonMessage(w, http.StatusOK, fmt.Sprintf("Account with ID: %v deleted successfully!", id))
 }
 
 func (s *APIServer) handleCreateAccount(w http.ResponseWriter, r *http.Request) {
