@@ -20,11 +20,10 @@ type MongoDB struct {
 	db     *mongo.Database
 }
 
-var _ models.Database = (*MongoDB)(nil)
-
 const MaxAttempts = 3 /* Maximum number of attempts to generate a unique account number */
 const ConnectionWarningTimeOut = 2 * time.Second
 const GetTimeOut = 5 * time.Second
+const InsertTimeOut = 5 * time.Second
 const CloseTimeOut = 5 * time.Second
 const CheckConnectionTimeOut = 2 * time.Second
 
@@ -80,17 +79,17 @@ func (m *MongoDB) CreateAccount(req *models.AccountRequest) (*models.Account, er
 		return nil, fmt.Errorf(DataBaseNotActive)
 	}
 
-	a, err2 := models.NewAccount(req)
-	if err2 != nil {
-		return nil, err2
+	a, err := models.NewAccount(req)
+	if err != nil {
+		return nil, err
 	}
 
 	collection := m.db.Collection("accounts")
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), InsertTimeOut)
 	defer cancel()
 
 	var existingAccount models.Account
-	err := collection.FindOne(ctx, bson.M{"email": a.Email}).Decode(&existingAccount)
+	err = collection.FindOne(ctx, bson.M{"email": a.Email}).Decode(&existingAccount)
 	if err == nil {
 		return nil, fmt.Errorf("an account with the email %s already exists", a.Email)
 	} else if !errors.Is(err, mongo.ErrNoDocuments) {
@@ -110,9 +109,9 @@ func (m *MongoDB) CreateAccount(req *models.AccountRequest) (*models.Account, er
 		}
 	}
 
-	_, err3 := collection.InsertOne(ctx, a)
-	if err3 != nil {
-		return nil, err3
+	_, err = collection.InsertOne(ctx, a)
+	if err != nil {
+		return nil, err
 	}
 	return a, nil
 }
@@ -200,7 +199,44 @@ func (m *MongoDB) UpdateAccount(id string, req *models.AccountRequest) (*models.
 	if !m.isConnected() {
 		return nil, fmt.Errorf(DataBaseNotActive)
 	}
-	return nil, fmt.Errorf("not implemented")
+	_id, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return nil, fmt.Errorf(InvalidID)
+	}
+
+	collection := m.db.Collection("accounts")
+	ctx, cancel := context.WithTimeout(context.Background(), InsertTimeOut+GetTimeOut)
+	defer cancel()
+
+	err = collection.FindOne(ctx, bson.M{"email": req.Email}).Decode(&models.Account{})
+	if err == nil {
+		return nil, fmt.Errorf("an account with the email %s already exists, please choose another email", req.Email)
+	} else if !errors.Is(err, mongo.ErrNoDocuments) {
+		return nil, err
+	}
+
+	var existingAccount models.Account
+	err = collection.FindOne(ctx, bson.M{"_id": _id}).Decode(&existingAccount)
+	if err != nil {
+		return nil, fmt.Errorf(NoAccountFound)
+	}
+
+	if req.FirstName != "" {
+		existingAccount.FirstName = req.FirstName
+	}
+	if req.LastName != "" {
+		existingAccount.LastName = req.LastName
+	}
+	if req.Email != "" {
+
+		existingAccount.Email = req.Email
+	}
+
+	_, err = collection.ReplaceOne(ctx, bson.M{"_id": _id}, existingAccount)
+	if err != nil {
+		return nil, fmt.Errorf("error updating account: %v", err)
+	}
+	return &existingAccount, nil
 }
 
 func (m *MongoDB) Close() {

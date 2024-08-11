@@ -82,8 +82,7 @@ func (s *APIServer) handleAccountByID(w http.ResponseWriter, r *http.Request) {
 	case http.MethodDelete:
 		s.handleDeleteAccount(w, r)
 	case http.MethodPut:
-		jsonMessage(w, http.StatusNotImplemented, "Method not implemented yet")
-		return
+		s.handleUpdateAccount(w, r)
 	default:
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
@@ -128,6 +127,37 @@ func (s *APIServer) handleGetAccountByID(w http.ResponseWriter, r *http.Request)
 		jsonMessage(w, http.StatusInternalServerError, err.Error())
 	}
 }
+
+func (s *APIServer) handleUpdateAccount(w http.ResponseWriter, r *http.Request) {
+	id := mux.Vars(r)["id"]
+	var req models.AccountRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		jsonMessage(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	account, err := s.database.UpdateAccount(id, &req)
+	if err != nil {
+		if err.Error() == db.NoAccountFound {
+			jsonMessage(w, http.StatusNotFound, err.Error())
+		} else if err.Error() == db.InvalidID || err.Error() == models.InvalidEmail || err.Error() == models.InvalidFirstName || err.Error() == models.InvalidLastName {
+			jsonMessage(w, http.StatusBadRequest, err.Error())
+		} else if err.Error() == fmt.Sprintf("an account with the email %s already exists, please choose another email", req.Email) {
+			jsonMessage(w, http.StatusConflict, err.Error())
+		} else {
+			jsonMessage(w, http.StatusInternalServerError, err.Error())
+		}
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	if err := json.NewEncoder(w).Encode(account); err != nil {
+		jsonMessage(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+}
+
 func (s *APIServer) handleDeleteAccount(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(mux.Vars(r)["id"])
 	if err != nil {
@@ -170,8 +200,8 @@ func (s *APIServer) handleCreateAccount(w http.ResponseWriter, r *http.Request) 
 		jsonMessage(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-
 }
+
 func (s *APIServer) handleTransfer(w http.ResponseWriter, r *http.Request) {
 	return
 }
