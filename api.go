@@ -214,6 +214,7 @@ func (s *APIServer) handleCreateAccount(w http.ResponseWriter, r *http.Request) 
 }
 
 func (s *APIServer) handleTransfer(w http.ResponseWriter, r *http.Request) {
+	jsonMessage(w, http.StatusNotImplemented, "Not implemented")
 	return
 }
 
