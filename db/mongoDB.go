@@ -30,6 +30,7 @@ const DeleteTimeOut = 5 * time.Second
 
 const DataBaseNotActive = "MongoDB connection is not active"
 const InvalidID = "invalid id"
+const InvalidAccountNumber = "invalid Account-Number"
 const NoAccountFound = "no account found"
 
 func (m *MongoDB) Connect() error {
@@ -117,7 +118,7 @@ func (m *MongoDB) CreateAccount(req *models.AccountRequest) (*models.Account, er
 	return a, nil
 }
 
-func (m *MongoDB) GetAllAccounts() ([]*models.Account, error) {
+func (m *MongoDB) GetAllAccounts(maxResults int) ([]*models.Account, error) {
 	if !m.isConnected() {
 		return nil, fmt.Errorf(DataBaseNotActive)
 	}
@@ -135,16 +136,14 @@ func (m *MongoDB) GetAllAccounts() ([]*models.Account, error) {
 			log.Println("⚠ Error closing cursor:", closeErr)
 		}
 	}()
-
 	var accounts []*models.Account
-	for cursor.Next(ctx) {
+	for i := 0; i < maxResults && cursor.Next(ctx); i++ {
 		var account models.Account
 		if err := cursor.Decode(&account); err != nil {
 			return nil, fmt.Errorf("error decoding account: %v", err)
 		}
 		accounts = append(accounts, &account)
 	}
-
 	if err := cursor.Err(); err != nil {
 		return nil, fmt.Errorf("cursor encountered an error: %v", err)
 	}
@@ -261,6 +260,35 @@ func (m *MongoDB) UpdateAccount(id string, req *models.AccountRequest) (*models.
 		return nil, fmt.Errorf("error updating account: %v", err)
 	}
 	return &existingAccount, nil
+}
+
+func (m *MongoDB) Deposit(id string, account int64, amount float64) error {
+	if !m.isConnected() {
+		return fmt.Errorf(DataBaseNotActive)
+	}
+	_id, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return fmt.Errorf(InvalidID)
+	}
+	collection := m.db.Collection("accounts")
+	ctx, cancel := context.WithTimeout(context.Background(), InsertTimeOut+GetTimeOut)
+	defer cancel()
+
+	err = collection.FindOne(ctx, bson.M{
+		"_id":            _id,
+		"account_number": account,
+	}).Decode(&models.Account{})
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return fmt.Errorf(NoAccountFound)
+		}
+		return fmt.Errorf("error finding account: %v", err)
+	}
+	_, err = collection.UpdateOne(ctx, bson.M{"_id": _id, "account_number": account}, bson.M{"$inc": bson.M{"balance": amount}})
+	if err != nil {
+		return fmt.Errorf("error updating account: %v", err)
+	}
+	return nil
 }
 
 func (m *MongoDB) Close() {

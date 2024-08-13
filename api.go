@@ -8,6 +8,7 @@ import (
 	"github.com/mathis-k/bank-api/models"
 	"log"
 	"net/http"
+	"strconv"
 )
 
 type APIServer struct {
@@ -87,8 +88,8 @@ func (s *APIServer) handleAccountByID(w http.ResponseWriter, r *http.Request) {
 	}
 }
 func (s *APIServer) handleGetAccounts(w http.ResponseWriter, r *http.Request) {
-
-	accounts, err := s.database.GetAllAccounts()
+	maxResults, err := strconv.Atoi(r.URL.Query().Get("max"))
+	accounts, err := s.database.GetAllAccounts(maxResults)
 	if err != nil {
 		jsonMessage(w, http.StatusInternalServerError, err.Error())
 		return
@@ -214,7 +215,7 @@ func (s *APIServer) handleCreateAccount(w http.ResponseWriter, r *http.Request) 
 }
 
 func (s *APIServer) handleTransfer(w http.ResponseWriter, r *http.Request) {
-	jsonMessage(w, http.StatusNotImplemented, "Not implemented")
+
 	return
 }
 
@@ -225,4 +226,5 @@ GET /account - get all accounts
 POST /account - create a new account
 GET /account/{id} - get account by ID
 PUT /account/{id} - update account by ID
-DELETE /account/{id} - delete account by ID`
+DELETE /account/{id} - delete account by ID
+PUT /transfer - transfer money between accounts`
