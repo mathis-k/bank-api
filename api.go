@@ -7,6 +7,7 @@ import (
 	"github.com/mathis-k/bank-api/db"
 	"github.com/mathis-k/bank-api/models"
 	"log"
+	"math"
 	"net/http"
 	"strconv"
 )
@@ -88,7 +89,18 @@ func (s *APIServer) handleAccountByID(w http.ResponseWriter, r *http.Request) {
 	}
 }
 func (s *APIServer) handleGetAccounts(w http.ResponseWriter, r *http.Request) {
-	maxResults, err := strconv.Atoi(r.URL.Query().Get("max"))
+	maxResults := uint64(math.MaxUint64)
+	if r.URL.Query().Get("maxResult") != "" {
+		input := r.URL.Query().Get("maxResult")
+		val, err := strconv.ParseUint(input, 10, 64)
+		if err != nil {
+			msg := fmt.Sprintf("Invalid max query parameter '%s': %v", input, err)
+			jsonMessage(w, http.StatusBadRequest, msg)
+			return
+		}
+		maxResults = val
+	}
+
 	accounts, err := s.database.GetAllAccounts(maxResults)
 	if err != nil {
 		jsonMessage(w, http.StatusInternalServerError, err.Error())

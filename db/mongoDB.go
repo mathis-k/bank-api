@@ -20,6 +20,8 @@ type MongoDB struct {
 	db     *mongo.Database
 }
 
+const MongoDBCompassURI = "mongodb+srv://TestUser:TestPassword@testcluster.ytxup.mongodb.net/"
+
 const MaxAttempts = 3 /* Maximum number of attempts to generate a unique account number */
 const ConnectionWarningTimeOut = 2 * time.Second
 const GetTimeOut = 5 * time.Second
@@ -118,7 +120,7 @@ func (m *MongoDB) CreateAccount(req *models.AccountRequest) (*models.Account, er
 	return a, nil
 }
 
-func (m *MongoDB) GetAllAccounts(maxResults int) ([]*models.Account, error) {
+func (m *MongoDB) GetAllAccounts(maxResults uint64) ([]*models.Account, error) {
 	if !m.isConnected() {
 		return nil, fmt.Errorf(DataBaseNotActive)
 	}
@@ -137,12 +139,15 @@ func (m *MongoDB) GetAllAccounts(maxResults int) ([]*models.Account, error) {
 		}
 	}()
 	var accounts []*models.Account
-	for i := 0; i < maxResults && cursor.Next(ctx); i++ {
+	for cursor.Next(ctx) {
 		var account models.Account
 		if err := cursor.Decode(&account); err != nil {
 			return nil, fmt.Errorf("error decoding account: %v", err)
 		}
 		accounts = append(accounts, &account)
+		if uint64(len(accounts)) >= maxResults {
+			break
+		}
 	}
 	if err := cursor.Err(); err != nil {
 		return nil, fmt.Errorf("cursor encountered an error: %v", err)
