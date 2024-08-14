@@ -32,8 +32,8 @@ const DeleteTimeOut = 5 * time.Second
 
 const DataBaseNotActive = "MongoDB connection is not active"
 const InvalidID = "invalid id"
-const InvalidAccountNumber = "invalid Account-Number"
 const NoAccountFound = "no account found"
+const InsufficientFunds = "insufficient funds"
 
 func (m *MongoDB) Connect() error {
 	if err := godotenv.Load(); err != nil {
@@ -193,6 +193,43 @@ func (m *MongoDB) GetAccountByID(id string) (*models.Account, error) {
 	return &account, nil
 }
 
+func (m *MongoDB) getAccountNumberByID(id string) (uint64, error) {
+	if !m.isConnected() {
+		return -1, fmt.Errorf(DataBaseNotActive)
+	}
+	_id, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return -1, fmt.Errorf(InvalidID)
+	}
+
+	collection := m.db.Collection("accounts")
+
+	ctx, cancel := context.WithTimeout(context.Background(), GetTimeOut)
+	defer cancel()
+
+	cursor, err := collection.Find(ctx, bson.M{
+		"_id": _id,
+	})
+	if err != nil {
+		return -1, fmt.Errorf("error finding account: %v", err)
+	}
+	defer func() {
+		if closeErr := cursor.Close(ctx); closeErr != nil {
+			log.Println("⚠ Error closing cursor:", closeErr, "whilst trying to fetch account for id:", id, "from MongoDB")
+		}
+	}()
+
+	var account models.Account
+	if cursor.Next(ctx) {
+		if err := cursor.Decode(&account); err != nil {
+			return -1, fmt.Errorf("error decoding account: %v", err)
+		}
+	} else {
+		return -1, fmt.Errorf(NoAccountFound)
+	}
+	return account.AccountNumber, nil
+}
+
 func (m *MongoDB) DeleteAccount(id string) (*models.Account, error) {
 	if !m.isConnected() {
 		return nil, fmt.Errorf(DataBaseNotActive)
@@ -267,33 +304,87 @@ func (m *MongoDB) UpdateAccount(id string, req *models.AccountRequest) (*models.
 	return &existingAccount, nil
 }
 
-func (m *MongoDB) Deposit(id string, account int64, amount float64) error {
+func (m *MongoDB) increaseBalance(accountNumber uint64, amount float64) (*models.Account, error) {
 	if !m.isConnected() {
-		return fmt.Errorf(DataBaseNotActive)
-	}
-	_id, err := primitive.ObjectIDFromHex(id)
-	if err != nil {
-		return fmt.Errorf(InvalidID)
+		return nil, fmt.Errorf(DataBaseNotActive)
 	}
 	collection := m.db.Collection("accounts")
-	ctx, cancel := context.WithTimeout(context.Background(), InsertTimeOut+GetTimeOut)
+	ctx, cancel := context.WithTimeout(context.Background(), GetTimeOut)
 	defer cancel()
 
-	err = collection.FindOne(ctx, bson.M{
-		"_id":            _id,
-		"account_number": account,
-	}).Decode(&models.Account{})
+	var account models.Account
+	err := collection.FindOne(ctx, bson.M{"account_number": accountNumber}).Decode(&account)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return fmt.Errorf(NoAccountFound)
+			return nil, fmt.Errorf(NoAccountFound)
+		} else {
+			return nil, err
 		}
-		return fmt.Errorf("error finding account: %v", err)
 	}
-	_, err = collection.UpdateOne(ctx, bson.M{"_id": _id, "account_number": account}, bson.M{"$inc": bson.M{"balance": amount}})
+
+	account.Balance += amount
+
+	ctx, cancel = context.WithTimeout(context.Background(), InsertTimeOut)
+	defer cancel()
+
+	_, err = collection.ReplaceOne(ctx, bson.M{"account_number": accountNumber}, account)
 	if err != nil {
-		return fmt.Errorf("error updating account: %v", err)
+		return nil, fmt.Errorf("error increasing balance on account: %v", err)
 	}
-	return nil
+	return &account, nil
+}
+
+func (m *MongoDB) decreaseBalance(accountNumber uint64, amount float64) (*models.Account, error) {
+	if !m.isConnected() {
+		return nil, fmt.Errorf(DataBaseNotActive)
+	}
+	collection := m.db.Collection("accounts")
+	ctx, cancel := context.WithTimeout(context.Background(), GetTimeOut)
+	defer cancel()
+
+	var account models.Account
+	err := collection.FindOne(ctx, bson.M{"account_number": accountNumber}).Decode(&account)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, fmt.Errorf(NoAccountFound)
+		} else {
+			return nil, err
+		}
+	}
+	if account.Balance < amount {
+		return nil, fmt.Errorf(InsufficientFunds)
+	}
+	account.Balance -= amount
+	ctx, cancel = context.WithTimeout(context.Background(), InsertTimeOut)
+	defer cancel()
+
+	_, err = collection.ReplaceOne(ctx, bson.M{"account_number": accountNumber}, account)
+	if err != nil {
+		return nil, fmt.Errorf("error decreasing balance on account: %v", err)
+	}
+	return &account, nil
+}
+
+func (m *MongoDB) Transfer(id string, req *models.TransferRequest) (*models.Account, *models.Account, error) {
+	if !m.isConnected() {
+		return nil, nil, fmt.Errorf(DataBaseNotActive)
+	}
+	fromAccountNumber, err := m.getAccountNumberByID(id)
+	if err != nil {
+		return nil, nil, err
+	}
+	toAccountNumber := req.AccountNumber
+	amount := req.Amount
+	fromAccount, err := m.decreaseBalance(fromAccountNumber, amount)
+	if err != nil {
+		return nil, nil, err
+	}
+	toAccount, err := m.increaseBalance(toAccountNumber, amount)
+	if err != nil {
+		_, err = m.increaseBalance(fromAccountNumber, amount)
+		return nil, nil, err
+	}
+	return fromAccount, toAccount, nil
 }
 
 func (m *MongoDB) Close() {

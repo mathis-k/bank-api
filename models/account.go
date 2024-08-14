@@ -11,7 +11,7 @@ import (
 
 type Account struct {
 	ID            primitive.ObjectID `bson:"_id,omitempty" json:"id,omitempty"`
-	AccountNumber int64              `bson:"account_number" json:"account_number"`
+	AccountNumber uint64             `bson:"account_number" json:"account_number"`
 	Balance       float64            `bson:"balance" json:"balance"`
 	FirstName     string             `bson:"first_name" json:"first_name"`
 	LastName      string             `bson:"last_name" json:"last_name"`
@@ -44,7 +44,7 @@ func NewAccount(req *AccountRequest) (*Account, error) {
 		FirstName:     req.FirstName,
 		LastName:      req.LastName,
 		Email:         req.Email,
-		CreatedAt:     time.Now(),
+		CreatedAt:     time.Now().Local(),
 	}, nil
 }
 func IsValidAccountRequest(req *AccountRequest) error {
@@ -58,9 +58,9 @@ func IsValidAccountRequest(req *AccountRequest) error {
 	return nil
 }
 
-func GenerateUniqueAccountNumber() int64 {
+func GenerateUniqueAccountNumber() uint64 {
 	rand.Seed(time.Now().UnixNano())
-	return int64(rand.Intn(10000000000))
+	return rand.Uint64()
 }
 
 func isValidName(name string) bool {

@@ -48,6 +48,8 @@ func (s *APIServer) Run() {
 		Methods(http.MethodGet, http.MethodPost)
 	router.HandleFunc("/account/{id}", s.handleAccountByID).
 		Methods(http.MethodGet, http.MethodDelete, http.MethodPut)
+	router.HandleFunc("/transfer", s.handleTransfer).
+		Methods(http.MethodPost)
 
 	log.Printf("✔ API server is running on localhost%s/ ... 🚀", s.listenAddress)
 	err := http.ListenAndServe(s.listenAddress, router)
