@@ -135,7 +135,6 @@ func (s *APIServer) handleGetAccountByID(w http.ResponseWriter, r *http.Request)
 		}
 		return
 	}
-
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	if err := json.NewEncoder(w).Encode(account); err != nil {
@@ -232,10 +231,6 @@ func (s *APIServer) handleCreateAccount(w http.ResponseWriter, r *http.Request) 
 func (s *APIServer) handleTransfer(w http.ResponseWriter, r *http.Request) {
 
 	return
-}
-
-func (s *APIServer) jwtAuthMiddleware(handler apiHandler) apiHandler {
-	return handler
 }
 
 const welcomeMessage = `Welcome to the Bank JSON API Server! :)

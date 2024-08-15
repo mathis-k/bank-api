@@ -195,11 +195,11 @@ func (m *MongoDB) GetAccountByID(id string) (*models.Account, error) {
 
 func (m *MongoDB) getAccountNumberByID(id string) (uint64, error) {
 	if !m.isConnected() {
-		return -1, fmt.Errorf(DataBaseNotActive)
+		return 0, fmt.Errorf(DataBaseNotActive)
 	}
 	_id, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
-		return -1, fmt.Errorf(InvalidID)
+		return 0, fmt.Errorf(InvalidID)
 	}
 
 	collection := m.db.Collection("accounts")
@@ -211,7 +211,7 @@ func (m *MongoDB) getAccountNumberByID(id string) (uint64, error) {
 		"_id": _id,
 	})
 	if err != nil {
-		return -1, fmt.Errorf("error finding account: %v", err)
+		return 0, fmt.Errorf("error finding account: %v", err)
 	}
 	defer func() {
 		if closeErr := cursor.Close(ctx); closeErr != nil {
@@ -222,10 +222,10 @@ func (m *MongoDB) getAccountNumberByID(id string) (uint64, error) {
 	var account models.Account
 	if cursor.Next(ctx) {
 		if err := cursor.Decode(&account); err != nil {
-			return -1, fmt.Errorf("error decoding account: %v", err)
+			return 0, fmt.Errorf("error decoding account: %v", err)
 		}
 	} else {
-		return -1, fmt.Errorf(NoAccountFound)
+		return 0, fmt.Errorf(NoAccountFound)
 	}
 	return account.AccountNumber, nil
 }
