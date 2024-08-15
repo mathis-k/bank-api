@@ -384,6 +384,7 @@ func (m *MongoDB) Transfer(id string, req *models.TransferRequest) (*models.Acco
 		_, err = m.increaseBalance(fromAccountNumber, amount)
 		return nil, nil, err
 	}
+
 	return fromAccount, toAccount, nil
 }
 
