@@ -12,6 +12,7 @@ import (
 	"strconv"
 )
 
+type apiHandler func(w http.ResponseWriter, r *http.Request) error
 type APIServer struct {
 	listenAddress string
 	database      models.Database
@@ -231,6 +232,10 @@ func (s *APIServer) handleCreateAccount(w http.ResponseWriter, r *http.Request) 
 func (s *APIServer) handleTransfer(w http.ResponseWriter, r *http.Request) {
 
 	return
+}
+
+func (s *APIServer) jwtAuthMiddleware(handler apiHandler) apiHandler {
+	return handler
 }
 
 const welcomeMessage = `Welcome to the Bank JSON API Server! :)
