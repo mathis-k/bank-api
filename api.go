@@ -94,6 +94,10 @@ func withJWTAuth(h http.HandlerFunc) http.HandlerFunc {
 		h(w, r)
 	}
 }
+func getClaimsFromContext(r *http.Request) (*auth.UserClaims, bool) {
+	claims, ok := r.Context().Value("claims").(*auth.UserClaims)
+	return claims, ok
+}
 
 func (s *APIServer) handleStartPage(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/plain")
@@ -107,6 +111,15 @@ func (s *APIServer) handleAccount(w http.ResponseWriter, r *http.Request) {
 	case http.MethodPost:
 		s.handleCreateAccount(w, r)
 	case http.MethodGet:
+		claims, ok := getClaimsFromContext(r)
+		if !ok {
+			jsonMessage(w, http.StatusInternalServerError, "Could not get claims from context")
+			return
+		}
+		if !claims.Admin {
+			jsonMessage(w, http.StatusForbidden, "You are not allowed to access this resource")
+			return
+		}
 		s.handleGetAccounts(w, r)
 	default:
 		jsonMessage(w, http.StatusMethodNotAllowed, "Method not allowed")
