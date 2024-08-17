@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/gorilla/mux"
@@ -47,11 +48,11 @@ func (s *APIServer) Run() {
 	router := mux.NewRouter()
 	router.HandleFunc("/", s.handleStartPage).
 		Methods(http.MethodGet)
-	router.HandleFunc("/account", s.handleAccount).
+	router.HandleFunc("/account", withJWTAuth(s.handleAccount)).
 		Methods(http.MethodGet, http.MethodPost)
-	router.HandleFunc("/account/{id}", s.handleAccountByID).
+	router.HandleFunc("/account/{id}", withJWTAuth(s.handleAccountByID)).
 		Methods(http.MethodGet, http.MethodDelete, http.MethodPut)
-	router.HandleFunc("/transfer", s.handleTransfer).
+	router.HandleFunc("/transfer", withJWTAuth(s.handleTransfer)).
 		Methods(http.MethodPost)
 
 	log.Printf("✔ API server is running on localhost%s/ ... 🚀", s.listenAddress)
@@ -69,7 +70,7 @@ func (s *APIServer) Shutdown() {
 	log.Println("✖ API server has been shut down.")
 }
 
-func withJWTAuth(h http.HandlerFunc, requiredAdmin bool) http.HandlerFunc {
+func withJWTAuth(h http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		authHeader := r.Header.Get("Authorization")
 		if authHeader == "" {
@@ -88,10 +89,8 @@ func withJWTAuth(h http.HandlerFunc, requiredAdmin bool) http.HandlerFunc {
 			return
 		}
 		claims := token.Claims.(*auth.UserClaims)
-		if requiredAdmin && !claims.Admin {
-			jsonMessage(w, http.StatusForbidden, "Admin privileges required")
-			return
-		}
+		ctx := context.WithValue(r.Context(), "claims", claims)
+		r = r.WithContext(ctx)
 		h(w, r)
 	}
 }
