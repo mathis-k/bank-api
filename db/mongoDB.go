@@ -22,18 +22,20 @@ type MongoDB struct {
 
 const MongoDBCompassURI = "mongodb+srv://TestUser:TestPassword@testcluster.ytxup.mongodb.net/"
 
-const MaxAttempts = 3 /* Maximum number of attempts to generate a unique account number */
-const ConnectionWarningTimeOut = 2 * time.Second
-const GetTimeOut = 5 * time.Second
-const InsertTimeOut = 5 * time.Second
-const CloseTimeOut = 5 * time.Second
-const CheckConnectionTimeOut = 2 * time.Second
-const DeleteTimeOut = 5 * time.Second
+const (
+	MaxAttempts              = 3 /* Maximum number of attempts to generate a unique account number */
+	ConnectionWarningTimeOut = 2 * time.Second
+	GetTimeOut               = 5 * time.Second
+	InsertTimeOut            = 5 * time.Second
+	CloseTimeOut             = 5 * time.Second
+	CheckConnectionTimeOut   = 2 * time.Second
+	DeleteTimeOut            = 5 * time.Second
 
-const DataBaseNotActive = "MongoDB connection is not active"
-const InvalidID = "invalid id"
-const NoAccountFound = "no account found"
-const InsufficientFunds = "insufficient funds"
+	DataBaseNotActive = "MongoDB connection is not active"
+	InvalidID         = "invalid id"
+	NoAccountFound    = "no account found"
+	InsufficientFunds = "insufficient funds"
+)
 
 func (m *MongoDB) Connect() error {
 	if err := godotenv.Load(); err != nil {
@@ -388,14 +390,19 @@ func (m *MongoDB) Transfer(id string, req *models.TransferRequest) (*models.Acco
 	return fromAccount, toAccount, nil
 }
 
-func (m *MongoDB) Close() {
+func (m *MongoDB) Disconnect() error {
 	if m.Client != nil {
 		ctx, cancel := context.WithTimeout(context.Background(), CloseTimeOut)
 		defer cancel()
 		if err := m.Client.Disconnect(ctx); err != nil {
 			log.Println("✖ Error disconnecting from MongoDB")
+			return err
 		} else {
 			log.Println("✔ Successfully disconnected from MongoDB")
+			return nil
 		}
+	} else {
+		log.Println("✖ MongoDB connection is not active")
+		return fmt.Errorf(DataBaseNotActive)
 	}
 }

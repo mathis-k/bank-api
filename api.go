@@ -4,15 +4,16 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/gorilla/mux"
+	"github.com/mathis-k/bank-api/auth"
 	"github.com/mathis-k/bank-api/db"
 	"github.com/mathis-k/bank-api/models"
 	"log"
 	"math"
 	"net/http"
+	"os"
 	"strconv"
 )
 
-type apiHandler func(w http.ResponseWriter, r *http.Request) error
 type APIServer struct {
 	listenAddress string
 	database      models.Database
@@ -29,7 +30,8 @@ func jsonMessage(w http.ResponseWriter, code int, message string) {
 	}
 }
 
-func NewAPIServer(listenAddress string) *APIServer {
+func NewAPIServer() *APIServer {
+	var listenAddress = os.Getenv("API_SERVER_ADDRESS")
 	database := &db.MongoDB{}
 	if err := database.Connect(); err != nil {
 		panic("Could not connect to database")
@@ -60,8 +62,41 @@ func (s *APIServer) Run() {
 		return
 	}
 }
-func (s *APIServer) handleStartPage(w http.ResponseWriter, r *http.Request) {
+func (s *APIServer) Shutdown() {
+	if err := s.database.Disconnect(); err != nil {
+		log.Printf("Error disconnecting from database: %v", err)
+	}
+	log.Println("✖ API server has been shut down.")
+}
 
+func withJWTAuth(h http.HandlerFunc, requiredAdmin bool) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		authHeader := r.Header.Get("Authorization")
+		if authHeader == "" {
+			jsonMessage(w, http.StatusUnauthorized, "Missing Authorization header")
+			return
+		}
+
+		tokenString := authHeader[len("Bearer "):]
+		token, err := auth.VerifyJWT(tokenString)
+		if err != nil {
+			if err.Error() == auth.TOKEN_EXPIRED || err.Error() == auth.INVALID_TOKEN {
+				jsonMessage(w, http.StatusUnauthorized, err.Error())
+			} else {
+				jsonMessage(w, http.StatusBadRequest, err.Error())
+			}
+			return
+		}
+		claims := token.Claims.(*auth.UserClaims)
+		if requiredAdmin && !claims.Admin {
+			jsonMessage(w, http.StatusForbidden, "Admin privileges required")
+			return
+		}
+		h(w, r)
+	}
+}
+
+func (s *APIServer) handleStartPage(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/plain")
 	w.WriteHeader(http.StatusOK)
 	if _, err := w.Write([]byte(welcomeMessage)); err != nil {
@@ -219,7 +254,10 @@ func (s *APIServer) handleCreateAccount(w http.ResponseWriter, r *http.Request) 
 		}
 		return
 	}
-
+	_, err = auth.GenerateUserJWT(account)
+	if err != nil {
+		fmt.Println("Error generating JWT token: ", err)
+	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	if err := json.NewEncoder(w).Encode(account); err != nil {
@@ -229,7 +267,7 @@ func (s *APIServer) handleCreateAccount(w http.ResponseWriter, r *http.Request) 
 }
 
 func (s *APIServer) handleTransfer(w http.ResponseWriter, r *http.Request) {
-
+	//TODO: Implement transfer handler
 	return
 }
 
@@ -241,4 +279,4 @@ POST /account - create a new account
 GET /account/{id} - get account by ID
 PUT /account/{id} - update account by ID
 DELETE /account/{id} - delete account by ID
-PUT /transfer - transfer money between accounts`
+POST /transfer - transfer money between accounts`

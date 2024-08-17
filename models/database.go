@@ -1,6 +1,8 @@
 package models
 
 type Database interface {
+	Connect() error
+	Disconnect() error
 	CreateAccount(req *AccountRequest) (*Account, error)
 	GetAllAccounts(maxResult uint64) ([]*Account, error)
 	GetAccountByID(id string) (*Account, error)

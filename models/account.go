@@ -44,7 +44,7 @@ func NewAccount(req *AccountRequest) (*Account, error) {
 		FirstName:     req.FirstName,
 		LastName:      req.LastName,
 		Email:         req.Email,
-		CreatedAt:     time.Now().Local(),
+		CreatedAt:     time.Now(),
 	}, nil
 }
 func IsValidAccountRequest(req *AccountRequest) error {
