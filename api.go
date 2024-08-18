@@ -140,13 +140,31 @@ func (s *APIServer) handleAccount(w http.ResponseWriter, r *http.Request) {
 	}
 }
 func (s *APIServer) handleAccountByID(w http.ResponseWriter, r *http.Request) {
+	claims, ok := getClaimsFromContext(r)
+	if !ok {
+		jsonMessage(w, http.StatusInternalServerError, "Could not get claims from context")
+		return
+	}
+	id := mux.Vars(r)["id"]
 	switch r.Method {
 	case http.MethodGet:
+		if claims.User.ID != id && !claims.Admin {
+			jsonMessage(w, http.StatusUnauthorized, "You can only access your own account")
+			return
+		}
 		s.handleGetAccountByID(w, r)
-	case http.MethodDelete:
-		s.handleDeleteAccount(w, r)
 	case http.MethodPut:
+		if claims.User.ID != id && !claims.Admin {
+			jsonMessage(w, http.StatusUnauthorized, "You can only update your own account")
+			return
+		}
 		s.handleUpdateAccount(w, r)
+	case http.MethodDelete:
+		if !claims.Admin {
+			jsonMessage(w, http.StatusForbidden, "Only admins are allowed to delete accounts")
+			return
+		}
+		s.handleDeleteAccount(w, r)
 	default:
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
@@ -277,6 +295,11 @@ func (s *APIServer) handleCreateAccount(w http.ResponseWriter, r *http.Request) 
 		} else {
 			jsonMessage(w, http.StatusInternalServerError, err.Error())
 		}
+		return
+	}
+	_, err_ := auth.GenerateUserJWT(account)
+	if err_ != nil {
+		jsonMessage(w, http.StatusInternalServerError, err_.Error())
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")

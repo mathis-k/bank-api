@@ -100,7 +100,7 @@ func GenerateUserJWT(account *models.Account) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	log.Printf("✔ JWT token created for account %d / user %v: %v", account.AccountNumber, account.ID.Hex(), signedToken)
+	log.Printf("ℹ New JWT token created for account %d / user %v (Valid for %s): %v", account.AccountNumber, account.ID.Hex(), formatDuration(EXPIRATION_TIME_USER), signedToken)
 	return signedToken, nil
 }
 
@@ -117,7 +117,7 @@ func GenerateAdminJWT() error {
 	if err != nil {
 		return err
 	}
-	log.Printf("ℹ New Admin JWT token created (Valid for %s): \n %v", formatDuration(EXPIRATION_TIME_ADMIN), signedToken)
+	log.Printf("ℹ New Admin JWT token created (Valid for %s):  %v", formatDuration(EXPIRATION_TIME_ADMIN), signedToken)
 	return nil
 }
 
@@ -144,5 +144,5 @@ func VerifyJWT(signedToken string) (*jwt.Token, error) {
 func formatDuration(d time.Duration) string {
 	hours := int(d.Hours())
 	minutes := int(d.Minutes()) % 60
-	return fmt.Sprintf("%02d:%02d", hours, minutes)
+	return fmt.Sprintf("%02dh %02dmin", hours, minutes)
 }

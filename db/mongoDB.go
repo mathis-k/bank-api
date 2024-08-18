@@ -23,7 +23,7 @@ type MongoDB struct {
 const MongoDBCompassURI = "mongodb+srv://TestUser:TestPassword@testcluster.ytxup.mongodb.net/"
 
 const (
-	MaxAttempts              = 3 /* Maximum number of attempts to generate a unique account number */
+	MaxAttempts              = 10 /* Maximum number of attempts to generate a unique account number */
 	ConnectionWarningTimeOut = 2 * time.Second
 	GetTimeOut               = 5 * time.Second
 	InsertTimeOut            = 5 * time.Second
