@@ -1,6 +1,6 @@
 # Bank API
 
-A simple JSON API server for a banking system built with Go (Golang), Gorilla/mux, MongoDB, and JWT for authorization and authentication.
+A simple JSON API server for a banking system built with Go (Golang), Gorilla/mux (no Gin), MongoDB, and JWT for authorization and authentication.
 
 ## Features
 
