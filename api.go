@@ -66,7 +66,7 @@ func (s *APIServer) Run() {
 		Methods(http.MethodPost)
 
 	log.Printf("✔ API server is running on localhost%s/ ... 🚀", s.listenAddress)
-	auth.GenerateAdminJWT()
+	_ = auth.GenerateAdminJWT()
 	err := http.ListenAndServe(s.listenAddress, router)
 	if err != nil {
 		log.Println("⚠ Error whilst listening:", err)
