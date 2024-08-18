@@ -306,9 +306,9 @@ func (m *MongoDB) UpdateAccount(id string, req *models.AccountRequest) (*models.
 	return &existingAccount, nil
 }
 
-func (m *MongoDB) increaseBalance(accountNumber uint64, amount float64) (*models.Account, error) {
+func (m *MongoDB) increaseBalance(accountNumber uint64, amount float64) error {
 	if !m.isConnected() {
-		return nil, fmt.Errorf(DataBaseNotActive)
+		return fmt.Errorf(DataBaseNotActive)
 	}
 	collection := m.db.Collection("accounts")
 	ctx, cancel := context.WithTimeout(context.Background(), GetTimeOut)
@@ -318,9 +318,9 @@ func (m *MongoDB) increaseBalance(accountNumber uint64, amount float64) (*models
 	err := collection.FindOne(ctx, bson.M{"account_number": accountNumber}).Decode(&account)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return nil, fmt.Errorf(NoAccountFound)
+			return fmt.Errorf(NoAccountFound)
 		} else {
-			return nil, err
+			return err
 		}
 	}
 
@@ -331,14 +331,14 @@ func (m *MongoDB) increaseBalance(accountNumber uint64, amount float64) (*models
 
 	_, err = collection.ReplaceOne(ctx, bson.M{"account_number": accountNumber}, account)
 	if err != nil {
-		return nil, fmt.Errorf("error increasing balance on account: %v", err)
+		return fmt.Errorf("error increasing balance on account: %v", err)
 	}
-	return &account, nil
+	return nil
 }
 
-func (m *MongoDB) decreaseBalance(accountNumber uint64, amount float64) (*models.Account, error) {
+func (m *MongoDB) decreaseBalance(accountNumber uint64, amount float64) error {
 	if !m.isConnected() {
-		return nil, fmt.Errorf(DataBaseNotActive)
+		return fmt.Errorf(DataBaseNotActive)
 	}
 	collection := m.db.Collection("accounts")
 	ctx, cancel := context.WithTimeout(context.Background(), GetTimeOut)
@@ -348,13 +348,13 @@ func (m *MongoDB) decreaseBalance(accountNumber uint64, amount float64) (*models
 	err := collection.FindOne(ctx, bson.M{"account_number": accountNumber}).Decode(&account)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return nil, fmt.Errorf(NoAccountFound)
+			return fmt.Errorf(NoAccountFound)
 		} else {
-			return nil, err
+			return err
 		}
 	}
 	if account.Balance < amount {
-		return nil, fmt.Errorf(InsufficientFunds)
+		return fmt.Errorf(InsufficientFunds)
 	}
 	account.Balance -= amount
 	ctx, cancel = context.WithTimeout(context.Background(), InsertTimeOut)
@@ -362,32 +362,32 @@ func (m *MongoDB) decreaseBalance(accountNumber uint64, amount float64) (*models
 
 	_, err = collection.ReplaceOne(ctx, bson.M{"account_number": accountNumber}, account)
 	if err != nil {
-		return nil, fmt.Errorf("error decreasing balance on account: %v", err)
+		return fmt.Errorf("error decreasing balance on account: %v", err)
 	}
-	return &account, nil
+	return nil
 }
 
-func (m *MongoDB) Transfer(id string, req *models.TransferRequest) (*models.Account, *models.Account, error) {
+func (m *MongoDB) Transfer(id string, req *models.TransferRequest) error {
 	if !m.isConnected() {
-		return nil, nil, fmt.Errorf(DataBaseNotActive)
+		return fmt.Errorf(DataBaseNotActive)
 	}
 	fromAccountNumber, err := m.getAccountNumberByID(id)
 	if err != nil {
-		return nil, nil, err
+		return err
 	}
 	toAccountNumber := req.AccountNumber
 	amount := req.Amount
-	fromAccount, err := m.decreaseBalance(fromAccountNumber, amount)
+	err = m.decreaseBalance(fromAccountNumber, amount)
 	if err != nil {
-		return nil, nil, err
+		return err
 	}
-	toAccount, err := m.increaseBalance(toAccountNumber, amount)
+	err = m.increaseBalance(toAccountNumber, amount)
 	if err != nil {
-		_, err = m.increaseBalance(fromAccountNumber, amount)
-		return nil, nil, err
+		err = m.increaseBalance(fromAccountNumber, amount)
+		return err
 	}
 
-	return fromAccount, toAccount, nil
+	return nil
 }
 
 func (m *MongoDB) Disconnect() error {

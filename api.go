@@ -311,8 +311,51 @@ func (s *APIServer) handleCreateAccount(w http.ResponseWriter, r *http.Request) 
 }
 
 func (s *APIServer) handleTransfer(w http.ResponseWriter, r *http.Request) {
-	//TODO: Implement transfer handler
-	return
+	claims, ok := getClaimsFromContext(r)
+	if !ok {
+		jsonMessage(w, http.StatusInternalServerError, "Could not get claims from context")
+		return
+	}
+	id := claims.User.ID
+	_, err := s.database.GetAccountByID(id)
+	if err != nil {
+		if err.Error() == db.NoAccountFound {
+			jsonMessage(w, http.StatusNotFound, "No valid account found with the provided token")
+		} else if err.Error() == db.InvalidID {
+			jsonMessage(w, http.StatusBadRequest, "Invalid ID in token")
+		} else {
+			jsonMessage(w, http.StatusInternalServerError, err.Error())
+		}
+		return
+	}
+	req := &models.TransferRequest{}
+	if err := json.NewDecoder(r.Body).Decode(req); err != nil {
+		jsonMessage(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	if req.AccountNumber == 0 {
+		jsonMessage(w, http.StatusBadRequest, "Missing account number")
+		return
+	} else if req.Amount == 0 {
+		jsonMessage(w, http.StatusBadRequest, "Missing amount / invalid amount")
+		return
+	}
+
+	err = s.database.Transfer(id, req)
+	if err != nil {
+		if err.Error() == db.NoAccountFound {
+			jsonMessage(w, http.StatusNotFound, "The account number you provided does not exist")
+		} else if err.Error() == db.InvalidID {
+			jsonMessage(w, http.StatusBadRequest, err.Error())
+		} else if err.Error() == db.InsufficientFunds {
+			jsonMessage(w, http.StatusConflict, err.Error())
+		} else {
+			jsonMessage(w, http.StatusInternalServerError, err.Error())
+		}
+		return
+	}
+
+	jsonMessage(w, http.StatusOK, "Transfer successful")
 }
 
 const welcomeMessage = `Welcome to the Bank JSON API Server! :)

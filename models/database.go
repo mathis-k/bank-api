@@ -8,4 +8,5 @@ type Database interface {
 	GetAccountByID(id string) (*Account, error)
 	DeleteAccount(id string) (*Account, error)
 	UpdateAccount(id string, req *AccountRequest) (*Account, error)
+	Transfer(id string, req *TransferRequest) error
 }
