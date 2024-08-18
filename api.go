@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/gorilla/mux"
+	"github.com/joho/godotenv"
 	"github.com/mathis-k/bank-api/auth"
 	"github.com/mathis-k/bank-api/db"
 	"github.com/mathis-k/bank-api/models"
@@ -32,12 +33,21 @@ func jsonMessage(w http.ResponseWriter, code int, message string) {
 }
 
 func NewAPIServer() *APIServer {
-	var listenAddress = os.Getenv("API_SERVER_ADDRESS")
-	database := &db.MongoDB{}
-	if err := database.Connect(); err != nil {
-		panic("Could not connect to database")
-	}
 
+	if err := godotenv.Load(); err != nil {
+		log.Println("✖ No .env file found")
+		return &APIServer{}
+	}
+	listenAddress := os.Getenv("API_SERVER_ADDRESS")
+	if listenAddress == "" {
+		log.Fatal("✖ API_SERVER_ADDRESS environment variable not set")
+	}
+	database := &db.MongoDB{}
+
+	log.Println("✔ New API server created on address:", listenAddress)
+	if err := database.Connect(); err != nil {
+		panic("✖ Could not connect to database")
+	}
 	return &APIServer{
 		listenAddress: listenAddress,
 		database:      database,
@@ -56,18 +66,21 @@ func (s *APIServer) Run() {
 		Methods(http.MethodPost)
 
 	log.Printf("✔ API server is running on localhost%s/ ... 🚀", s.listenAddress)
+	auth.GenerateAdminJWT()
 	err := http.ListenAndServe(s.listenAddress, router)
 	if err != nil {
-		log.Printf("✖ %w: Error starting server: %v", err, s.listenAddress)
-		log.Println("... Shutting down server ...")
+		log.Println("⚠ Error whilst listening:", err)
+		log.Println("⚠ ... Shutting down server ...")
+		s.Shutdown()
 		return
 	}
+
 }
 func (s *APIServer) Shutdown() {
 	if err := s.database.Disconnect(); err != nil {
-		log.Printf("Error disconnecting from database: %v", err)
+		log.Printf("⚠ Error disconnecting from database: %v", err)
 	}
-	log.Println("✖ API server has been shut down.")
+	log.Println("✔ API server has been shut down.")
 }
 
 func withJWTAuth(h http.HandlerFunc) http.HandlerFunc {
@@ -265,10 +278,6 @@ func (s *APIServer) handleCreateAccount(w http.ResponseWriter, r *http.Request) 
 			jsonMessage(w, http.StatusInternalServerError, err.Error())
 		}
 		return
-	}
-	_, err = auth.GenerateUserJWT(account)
-	if err != nil {
-		fmt.Println("Error generating JWT token: ", err)
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)

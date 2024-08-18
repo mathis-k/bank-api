@@ -12,10 +12,12 @@ import (
 var mySigningKey = os.Getenv("JWT_SECRET")
 
 const (
-	INVALID_TOKEN  = "Invalid token"
-	TOKEN_EXPIRED  = "Token has expired"
-	INVALID_CLAIMS = "Invalid token claims"
-	TOKEN_PARSE    = "Error parsing token"
+	INVALID_TOKEN         = "Invalid token"
+	TOKEN_EXPIRED         = "Token has expired"
+	INVALID_CLAIMS        = "Invalid token claims"
+	TOKEN_PARSE           = "Error parsing token"
+	EXPIRATION_TIME_USER  = time.Hour * 24
+	EXPIRATION_TIME_ADMIN = time.Minute * 15
 )
 
 type user struct {
@@ -102,9 +104,21 @@ func GenerateUserJWT(account *models.Account) (string, error) {
 	return signedToken, nil
 }
 
-func GenerateAdminJWT(account *models.Account) (string, error) {
-	//TODO: Later
-	return "", nil
+func GenerateAdminJWT() error {
+	claims := UserClaims{
+		ISS:   "bank-api",
+		Admin: true,
+		Exp:   time.Now().Add(EXPIRATION_TIME_ADMIN).Unix(),
+		Iat:   time.Now().Unix(),
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+
+	signedToken, err := token.SignedString([]byte(mySigningKey))
+	if err != nil {
+		return err
+	}
+	log.Printf("ℹ New Admin JWT token created (Valid for %s): \n %v", formatDuration(EXPIRATION_TIME_ADMIN), signedToken)
+	return nil
 }
 
 func VerifyJWT(signedToken string) (*jwt.Token, error) {
@@ -125,4 +139,10 @@ func VerifyJWT(signedToken string) (*jwt.Token, error) {
 		}
 		return nil, fmt.Errorf(INVALID_CLAIMS)
 	}
+}
+
+func formatDuration(d time.Duration) string {
+	hours := int(d.Hours())
+	minutes := int(d.Minutes()) % 60
+	return fmt.Sprintf("%02d:%02d", hours, minutes)
 }
