@@ -30,7 +30,7 @@ A simple JSON API server for a banking system built with Go (Golang), Gorilla/mu
 3. Set up your environment variables:
 
    ```bash
-   cp .env.example .env
+    cp .env.example .env
 4. Install dependencies:
 
    ```bash
@@ -45,7 +45,6 @@ A simple JSON API server for a banking system built with Go (Golang), Gorilla/mu
 - **GET /api/auth/logout**: Logout a user
 - **GET /api/auth/user**: Get the current user
 - **GET /api/auth/refresh**: Refresh the JWT token
-
 ### Users
 
 - **GET /api/user**: Get the current user
@@ -65,20 +64,9 @@ A simple JSON API server for a banking system built with Go (Golang), Gorilla/mu
 
 - **GET /api/transactions**: Get all transactions for the current user
 - **GET /api/transactions/{id}**: Get a transaction by ID for the current user
-- **POST /api/transactions**: Create a new transaction for the current user
 - **GET /api/transactions/account/{id}**: Get all transactions for an account for the current user
 - **GET /api/transactions/account/{id}/balance**: Get the balance for an account for the current user
-- **Post /api/transactions/account/{id}/deposit**: Deposit funds into an account for the current user
+- **POST /api/transactions/account/{id}/deposit**: Deposit funds into an account for the current user
 - **POST /api/transactions/account/{id}/withdraw**: Withdraw funds from an account for the current user
+- **POST /api/transactions/account/{id}/transfer**: Transfer funds from an account of the current user to another account
 - **GET /api/transactions/account/{id}/transactions**: Get all transactions for an account for the current user
-
-### For Admins
-
-- **GET /api/admin/users**: Get all users
-- **GET /api/admin/users/{id}**: Get a user by ID
-- **DELETE /api/admin/users/{id}**: Delete a user by ID
-- **GET /api/admin/accounts**: Get all accounts
-- **GET /api/admin/accounts/{id}**: Get an account by ID
-- **DELETE /api/admin/accounts/{id}**: Delete an account by ID
-- **GET /api/admin/transactions**: Get all transactions
-- **GET /api/admin/transactions/{id}**: Get a transaction by ID
