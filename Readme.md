@@ -43,7 +43,6 @@ A simple JSON API server for a banking system built with Go (Golang), Gorilla/mu
 - **POST /api/auth/register**: Register a new user
 - **POST /api/auth/login**: Login an existing user
 - **GET /api/auth/logout**: Logout a user
-- **GET /api/auth/user**: Get the current user
 - **GET /api/auth/refresh**: Refresh the JWT token
 ### Users
 
@@ -57,16 +56,30 @@ A simple JSON API server for a banking system built with Go (Golang), Gorilla/mu
 - **GET /api/accounts**: Get all accounts for the current user
 - **GET /api/accounts/{id}**: Get an account by ID for the current user
 - **POST /api/accounts**: Create a new account for the current user
-- **PUT /api/accounts/{id}**: Update an account by ID for the current user
 - **DELETE /api/accounts/{id}**: Delete an account by ID for the current user
 
 ### Transactions
 
 - **GET /api/transactions**: Get all transactions for the current user
 - **GET /api/transactions/{id}**: Get a transaction by ID for the current user
-- **GET /api/transactions/account/{id}**: Get all transactions for an account for the current user
-- **GET /api/transactions/account/{id}/balance**: Get the balance for an account for the current user
-- **POST /api/transactions/account/{id}/deposit**: Deposit funds into an account for the current user
-- **POST /api/transactions/account/{id}/withdraw**: Withdraw funds from an account for the current user
+- **GET /api/transactions/account/{id}**: Get all transactions for an account from the current user
+- **GET /api/transactions/account/{id}/balance**: Get the balance for an account from the current user
+- **POST /api/transactions/account/{id}/deposit**: Deposit funds into an account from the current user
+- **POST /api/transactions/account/{id}/withdraw**: Withdraw funds from an account from the current user
 - **POST /api/transactions/account/{id}/transfer**: Transfer funds from an account of the current user to another account
-- **GET /api/transactions/account/{id}/transactions**: Get all transactions for an account for the current user
+
+
+## Project Structure
+
+```bash 
+.
+├── main.go
+├── routes/
+├── controllers/
+├── models/
+├── middleware/
+├── config/
+├── utils/
+├── .env.example
+├── go.mod
+└── go.sum
