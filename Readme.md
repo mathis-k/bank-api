@@ -63,7 +63,6 @@ A simple JSON API server for a banking system built with Go (Golang), Gorilla/mu
 - **GET /api/transactions**: Get all transactions for the current user
 - **GET /api/transactions/{id}**: Get a transaction by ID for the current user
 - **GET /api/transactions/account/{id}**: Get all transactions for an account from the current user
-- **GET /api/transactions/account/{id}/balance**: Get the balance for an account from the current user
 - **POST /api/transactions/account/{id}/deposit**: Deposit funds into an account from the current user
 - **POST /api/transactions/account/{id}/withdraw**: Withdraw funds from an account from the current user
 - **POST /api/transactions/account/{id}/transfer**: Transfer funds from an account of the current user to another account
