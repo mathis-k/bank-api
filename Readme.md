@@ -77,7 +77,6 @@ A simple JSON API server for a banking system built with Go (Golang), Gorilla/mu
 ├── controllers/
 ├── models/
 ├── middleware/
-├── config/
 ├── utils/
 ├── .env.example
 ├── go.mod
