@@ -42,8 +42,7 @@ A simple JSON API server for a banking system built with Go (Golang), Gorilla/mu
 
 - **POST /api/auth/register**: Register a new user
 - **POST /api/auth/login**: Login an existing user
-- **GET /api/auth/logout**: Logout a user
-- **GET /api/auth/refresh**: Refresh the JWT token
+- **POST /api/auth/logout**: Logout a user
 ### Users
 
 - **GET /api/user**: Get the current user
