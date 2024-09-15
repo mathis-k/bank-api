@@ -1,28 +1,67 @@
-package auth
+package middleware
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/mathis-k/bank-api/models"
+	"github.com/mathis-k/bank-api/utils"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"log"
+	"net/http"
 	"os"
+	"strings"
 	"time"
 )
 
 var mySigningKey = os.Getenv("JWT_SECRET")
 
 const (
-	INVALID_TOKEN        = "invalid token"
-	TOKEN_EXPIRED        = "token has expired"
-	INVALID_CLAIMS       = "invalid token claims"
 	EXPIRATION_TIME_USER = time.Hour * 24
 )
 
 type UserClaims struct {
 	User_Id primitive.ObjectID `json:"user"`
+	Valid   bool               `json:"valid"`
 	Exp     int64              `json:"exp"`
 	Iat     int64              `json:"iat"`
+}
+
+func AuthMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		authHeader := r.Header.Get("Authorization")
+		if authHeader == "" {
+			utils.ErrorMessage(w, http.StatusUnauthorized, utils.MISSING_AUTH_HEADER)
+			return
+		}
+
+		if !strings.HasPrefix(authHeader, "Bearer ") {
+			utils.ErrorMessage(w, http.StatusUnauthorized, utils.INVALID_TOKEN)
+			return
+		}
+
+		tokenString := authHeader[len("Bearer "):]
+
+		token, err := VerifyJWT(tokenString)
+		if err != nil {
+			if errors.Is(err, utils.TOKEN_EXPIRED) || errors.Is(err, utils.INVALID_TOKEN) {
+				utils.ErrorMessage(w, http.StatusUnauthorized, err)
+			} else {
+				utils.ErrorMessage(w, http.StatusBadRequest, err)
+			}
+			return
+		}
+
+		claims, ok := token.Claims.(*UserClaims)
+		if !ok || !token.Valid {
+			utils.ErrorMessage(w, http.StatusUnauthorized, utils.INVALID_TOKEN)
+			return
+		}
+
+		ctx := context.WithValue(r.Context(), "claims", claims)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
 }
 
 func GenerateUserJWT(user *models.User) (string, error) {
@@ -37,7 +76,7 @@ func GenerateUserJWT(user *models.User) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	log.Printf("ℹ New JWT token created for user %v (Valid for %s): %v", user.ID, formatDuration(EXPIRATION_TIME_USER), signedToken)
+	log.Printf("ℹ New JWT token created for user %v (Valid for %s): %v", claims.User_Id, utils.FormatDuration(EXPIRATION_TIME_USER), signedToken)
 	return signedToken, nil
 }
 
@@ -50,40 +89,17 @@ func VerifyJWT(signedToken string) (*jwt.Token, error) {
 	}
 	if claims, ok := token.Claims.(*UserClaims); ok && token.Valid {
 		if claims.Exp < time.Now().Unix() {
-			return nil, fmt.Errorf(TOKEN_EXPIRED)
+			return nil, utils.TOKEN_EXPIRED
+		} else if !claims.Valid {
+			return nil, utils.INVALID_TOKEN
 		}
 		return token, nil
 	} else {
 		if !token.Valid {
-			return nil, fmt.Errorf(INVALID_TOKEN)
+			return nil, utils.INVALID_TOKEN
 		}
-		return nil, fmt.Errorf(INVALID_CLAIMS)
+		return nil, utils.INVALID_CLAIMS
 	}
-}
-
-func RefreshJWT(signedToken string) (string, error) {
-	token, err := VerifyJWT(signedToken)
-	if err != nil {
-		return "", err
-	}
-	claims, ok := token.Claims.(*UserClaims)
-	if !ok {
-		return "", fmt.Errorf(INVALID_CLAIMS)
-	}
-	claims.Exp = time.Now().Add(EXPIRATION_TIME_USER).Unix()
-	newToken := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	signedToken, err = newToken.SignedString([]byte(mySigningKey))
-	if err != nil {
-		return "", err
-	}
-	log.Printf("ℹ JWT token refreshed for user %v (Valid for %s): %v", claims.User_Id, formatDuration(EXPIRATION_TIME_USER), signedToken)
-	return signedToken, nil
-}
-
-func formatDuration(d time.Duration) string {
-	hours := int(d.Hours())
-	minutes := int(d.Minutes()) % 60
-	return fmt.Sprintf("%02dh %02dmin", hours, minutes)
 }
 
 func (u UserClaims) GetExpirationTime() (*jwt.NumericDate, error) {

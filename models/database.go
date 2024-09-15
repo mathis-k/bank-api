@@ -1,9 +1,9 @@
-package db
+package models
 
 import (
 	"context"
-	"fmt"
 	"github.com/joho/godotenv"
+	"github.com/mathis-k/bank-api/utils"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"log"
@@ -11,25 +11,18 @@ import (
 	"time"
 )
 
-type Database interface {
-	Connect() error
-	Disconnect() error
-}
-
-type MongoDB struct {
+type DB struct {
 	Client *mongo.Client
-	db     *mongo.Database
+	Db     *mongo.Database
 }
 
 const (
 	ConnectionWarningTimeOut = 2 * time.Second
 	CloseTimeOut             = 5 * time.Second
 	CheckConnectionTimeOut   = 2 * time.Second
-
-	DataBaseNotActive = "MongoDB connection is not active"
 )
 
-func (m *MongoDB) Connect() error {
+func (d *DB) Connect() error {
 	if err := godotenv.Load(); err != nil {
 		log.Println("✖ No .env file found")
 	}
@@ -51,32 +44,32 @@ func (m *MongoDB) Connect() error {
 		log.Printf("⚠ Connection to MongoDB is taking longer than expected: %v", elapsedTime)
 	}
 
-	m.Client = client
-	m.db = client.Database(database)
+	d.Client = client
+	d.Db = client.Database(database)
 	log.Println("✔ Successfully Connected to MongoDB")
 
 	return nil
 }
 
-func (m *MongoDB) isConnected() bool {
-	if m.db == nil || m.Client == nil {
+func (d *DB) IsConnected() bool {
+	if d.Db == nil || d.Client == nil {
 		return false
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), CheckConnectionTimeOut)
 	defer cancel()
 
-	if err := m.Client.Ping(ctx, nil); err != nil {
+	if err := d.Client.Ping(ctx, nil); err != nil {
 		return false
 	} else {
 		return true
 	}
 }
 
-func (m *MongoDB) Disconnect() error {
-	if m.Client != nil {
+func (d *DB) Disconnect() error {
+	if d.Client != nil {
 		ctx, cancel := context.WithTimeout(context.Background(), CloseTimeOut)
 		defer cancel()
-		if err := m.Client.Disconnect(ctx); err != nil {
+		if err := d.Client.Disconnect(ctx); err != nil {
 			log.Println("✖ Error disconnecting from MongoDB")
 			return err
 		} else {
@@ -85,6 +78,6 @@ func (m *MongoDB) Disconnect() error {
 		}
 	} else {
 		log.Println("✖ MongoDB connection is not active")
-		return fmt.Errorf(DataBaseNotActive)
+		return utils.DATABASE_NOT_ACTIVVE
 	}
 }
