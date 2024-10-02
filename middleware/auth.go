@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/mathis-k/bank-api/models"
 	"github.com/mathis-k/bank-api/utils"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"log"
@@ -64,9 +63,9 @@ func AuthMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-func GenerateUserJWT(user *models.User) (string, error) {
+func GenerateUserJWT(uId primitive.ObjectID) (string, error) {
 	claims := UserClaims{
-		User_Id: user.ID,
+		User_Id: uId,
 		Exp:     time.Now().Add(EXPIRATION_TIME_USER).Unix(),
 		Iat:     time.Now().Unix(),
 	}
@@ -100,6 +99,11 @@ func VerifyJWT(signedToken string) (*jwt.Token, error) {
 		}
 		return nil, utils.INVALID_CLAIMS
 	}
+}
+
+func GetClaimsFromContext(r *http.Request) (*UserClaims, bool) {
+	claims, ok := r.Context().Value("claims").(*UserClaims)
+	return claims, ok
 }
 
 func (u UserClaims) GetExpirationTime() (*jwt.NumericDate, error) {
