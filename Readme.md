@@ -40,31 +40,69 @@ A simple JSON API server for a banking system built with Go (Golang), Gorilla/mu
 
 ### Authentication
 
-- **POST /api/auth/register**: Register a new user
-- **POST /api/auth/login**: Login an existing user
-- **POST /api/auth/logout**: Logout a user
+- **POST /api/auth/register**: Register a new user \
+Request Body:
+  ```json
+    {
+      "first_name": "John",
+      "last_name": "Doe",
+      "email": "john.doe@example.com",
+      "password": "password123"
+    }
+- **POST /api/auth/login**: Login an existing user \
+  Request Body:
+  ```json
+    {
+      "email": "john.doe@example.com",
+      "password": "password123"
+    }
 ### Users
 
 - **GET /api/user**: Get the current user
-- **PUT /api/user**: Update the current user
-- **GET /api/user/accounts**: Get all accounts for the current user
-- **GET /api/user/transactions**: Get all transactions for the current user
+- **PUT /api/user**: Update the current user \
+  Request Body:
+  ```json
+    {
+      "first_name": "John",
+      "last_name": "Doe",
+      "email": "john.doe@example.com"
+    }
+  or
+    {
+      "last_name": "Doey"
+    }
 
 ### Accounts
 
 - **GET /api/accounts**: Get all accounts for the current user
-- **GET /api/accounts/{id}**: Get an account by ID for the current user
+- **GET /api/accounts/{number}**: Get an account by ID for the current user
 - **POST /api/accounts**: Create a new account for the current user
-- **DELETE /api/accounts/{id}**: Delete an account by ID for the current user
+- **DELETE /api/accounts/{number}**: Delete an account by ID for the current user
 
 ### Transactions
 
 - **GET /api/transactions**: Get all transactions for the current user
 - **GET /api/transactions/{id}**: Get a transaction by ID for the current user
-- **GET /api/transactions/account/{id}**: Get all transactions for an account from the current user
-- **POST /api/transactions/account/{id}/deposit**: Deposit funds into an account from the current user
-- **POST /api/transactions/account/{id}/withdraw**: Withdraw funds from an account from the current user
-- **POST /api/transactions/account/{id}/transfer**: Transfer funds from an account of the current user to another account
+- **GET /api/transactions/account/{number}**: Get all transactions for an account from the current user
+- **POST /api/transactions/account/{number}/deposit**: Deposit funds into an account from the current user \
+  Request Body:
+  ```json
+    {
+      "amount": "150.00"
+    }
+- **POST /api/transactions/account/{number}/withdraw**: Withdraw funds from an account from the current user \
+  Request Body:
+  ```json
+    {
+      "amount": "150.00"
+    }
+- **POST /api/transactions/account/{number}/transfer**: Transfer funds from an account of the current user to another account \
+  Request Body:
+  ```json
+    {
+      "amount": "150.00",
+      "to_account": "7252934484834"
+    }
 
 
 ## Project Structure
