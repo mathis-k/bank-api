@@ -1,9 +1,10 @@
 package utils
 
 import (
+	"encoding/json"
 	"fmt"
-	"github.com/mathis-k/bank-api/middleware"
 	"net/http"
+	"strconv"
 	"time"
 )
 
@@ -13,7 +14,19 @@ func FormatDuration(d time.Duration) string {
 	return fmt.Sprintf("%02dh %02dmin", hours, minutes)
 }
 
-func GetClaimsFromContext(r *http.Request) (*middleware.UserClaims, bool) {
-	claims, ok := r.Context().Value("claims").(*middleware.UserClaims)
-	return claims, ok
+func StringToUint64(s string) (uint64, error) {
+	i, err := strconv.ParseUint(s, 10, 64)
+	if err != nil {
+		return 0, err
+	}
+	return i, nil
+}
+
+func ResponseMessage(w http.ResponseWriter, code int, response any) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(code)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		ErrorMessage(w, http.StatusInternalServerError, err)
+		return
+	}
 }

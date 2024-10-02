@@ -6,11 +6,17 @@ import (
 )
 
 var (
-	DATABASE_NOT_ACTIVVE = fmt.Errorf("MongoDB connection is not active")
-	INVALID_TOKEN        = fmt.Errorf("invalid token")
-	TOKEN_EXPIRED        = fmt.Errorf("token has expired")
-	INVALID_CLAIMS       = fmt.Errorf("invalid token claims")
-	MISSING_AUTH_HEADER  = fmt.Errorf("Missing Authorization header")
+	DATABASE_NOT_ACTIVVE     = fmt.Errorf("mongoDB connection is not active")
+	INVALID_TOKEN            = fmt.Errorf("invalid token")
+	TOKEN_EXPIRED            = fmt.Errorf("token has expired")
+	INVALID_CLAIMS           = fmt.Errorf("invalid token claims")
+	INVALID_CREDENTIALS      = fmt.Errorf("invalid credentials")
+	MISSING_AUTH_HEADER      = fmt.Errorf("missing authorization header")
+	EMAIL_ALREADY_EXISTS     = fmt.Errorf("email already exists")
+	USER_NOT_FOUND           = fmt.Errorf("user not found")
+	TRANSACTION_NOT_FOUND    = fmt.Errorf("transaction not found")
+	ACCOUNT_NOT_FOUND        = fmt.Errorf("account not found")
+	INVALID_TRANSACTION_TYPE = fmt.Errorf("invalid transaction type")
 )
 
 func ErrorMessage(w http.ResponseWriter, code int, error error) {
