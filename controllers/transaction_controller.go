@@ -79,14 +79,12 @@ func (s *APIServer) DepositToAccount(w http.ResponseWriter, r *http.Request) {
 	}
 	transactionRequest.Type = "DEPOSIT"
 	transactionRequest.ToAccountID = account.ID
-
 	if err := models.ValidateTransactionRequest(&transactionRequest); err != nil {
 		utils.ErrorMessage(w, http.StatusBadRequest, err)
 		return
 	}
 
 	transaction, err := s.Database.CreateTransaction(&transactionRequest)
-
 	if err != nil {
 		utils.ErrorMessage(w, http.StatusInternalServerError, err)
 		return
@@ -102,17 +100,14 @@ func (s *APIServer) WithdrawFromAccount(w http.ResponseWriter, r *http.Request) 
 		utils.ErrorMessage(w, http.StatusBadRequest, err)
 		return
 	}
-
 	transactionRequest.Type = "WITHDRAW"
 	transactionRequest.FromAccount = account.ID
-
 	if err := models.ValidateTransactionRequest(&transactionRequest); err != nil {
 		utils.ErrorMessage(w, http.StatusBadRequest, err)
 		return
 	}
 
 	transaction, err := s.Database.CreateTransaction(&transactionRequest)
-
 	if err != nil {
 		utils.ErrorMessage(w, http.StatusInternalServerError, err)
 		return
@@ -120,4 +115,32 @@ func (s *APIServer) WithdrawFromAccount(w http.ResponseWriter, r *http.Request) 
 
 	utils.ResponseMessage(w, http.StatusCreated, transaction)
 }
-func (s *APIServer) TransferBetweenAccounts(w http.ResponseWriter, r *http.Request) {}
+func (s *APIServer) TransferBetweenAccounts(w http.ResponseWriter, r *http.Request) {
+	account := r.Context().Value("account").(models.Account)
+
+	var transactionRequest models.TransactionRequest
+	if err := json.NewDecoder(r.Body).Decode(&transactionRequest); err != nil {
+		utils.ErrorMessage(w, http.StatusBadRequest, err)
+		return
+	}
+	transactionRequest.Type = "TRANSFER"
+	transactionRequest.FromAccount = account.ID
+	to_account, err := s.Database.GetAccountByAccountNumber(transactionRequest.ToAccount)
+	if err != nil {
+		utils.ErrorMessage(w, http.StatusBadRequest, err)
+		return
+	}
+	transactionRequest.ToAccountID = to_account.ID
+	if err := models.ValidateTransactionRequest(&transactionRequest); err != nil {
+		utils.ErrorMessage(w, http.StatusBadRequest, err)
+		return
+	}
+
+	transaction, err := s.Database.CreateTransaction(&transactionRequest)
+	if err != nil {
+		utils.ErrorMessage(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	utils.ResponseMessage(w, http.StatusCreated, transaction)
+}
