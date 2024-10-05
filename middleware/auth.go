@@ -66,6 +66,7 @@ func AuthMiddleware(next http.Handler) http.Handler {
 func GenerateUserJWT(uId primitive.ObjectID) (string, error) {
 	claims := UserClaims{
 		User_Id: uId,
+		Valid:   true,
 		Exp:     time.Now().Add(EXPIRATION_TIME_USER).Unix(),
 		Iat:     time.Now().Unix(),
 	}

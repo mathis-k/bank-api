@@ -33,7 +33,6 @@ func Run(s *controllers.APIServer) {
 	}
 }
 func main() {
-
 	api := controllers.NewAPIServer()
 	Run(api)
 }

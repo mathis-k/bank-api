@@ -88,19 +88,19 @@ Request Body:
   Request Body:
   ```json
     {
-      "amount": "150.00"
+      "amount": 150.00
     }
 - **POST /api/transactions/account/{number}/withdraw**: Withdraw funds from an account from the current user \
   Request Body:
   ```json
     {
-      "amount": "150.00"
+      "amount": 150.00
     }
 - **POST /api/transactions/account/{number}/transfer**: Transfer funds from an account of the current user to another account \
   Request Body:
   ```json
     {
-      "amount": "150.00",
+      "amount": 150.00,
       "to_account": "7252934484834"
     }
 

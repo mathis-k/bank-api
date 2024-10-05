@@ -14,8 +14,8 @@ func RegisterTransactionRoutes(router *mux.Router, controllers *controllers.APIS
 
 	subsubRouter := subRouter.PathPrefix("/account").Subrouter()
 	subsubRouter.Use(controllers.Database.CheckAccountPermissionMiddleware)
-	subRouter.HandleFunc("/{number}", controllers.GetTransactionsFromAccount).Methods("GET")
-	subRouter.HandleFunc("/{number}/deposit", controllers.DepositToAccount).Methods("POST")
-	subRouter.HandleFunc("/{number}/withdraw", controllers.WithdrawFromAccount).Methods("POST")
-	subRouter.HandleFunc("/{number}/transfer", controllers.TransferBetweenAccounts).Methods("POST")
+	subsubRouter.HandleFunc("/{number}", controllers.GetTransactionsFromAccount).Methods("GET")
+	subsubRouter.HandleFunc("/{number}/deposit", controllers.DepositToAccount).Methods("POST")
+	subsubRouter.HandleFunc("/{number}/withdraw", controllers.WithdrawFromAccount).Methods("POST")
+	subsubRouter.HandleFunc("/{number}/transfer", controllers.TransferBetweenAccounts).Methods("POST")
 }

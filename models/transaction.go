@@ -32,7 +32,7 @@ type TransactionRequest struct {
 	Type        TransactionType    `bson:"type" json:"type" validate:"required"`
 	Amount      float64            `bson:"amount" json:"amount" validate:"required,gt=0,lte=10000"`
 	FromAccount primitive.ObjectID `bson:"from_account" json:"from_account"`
-	ToAccount   uint64             `bson:"to_account" json:"to_account"`
+	ToAccount   string             `bson:"to_account" json:"to_account"`
 	ToAccountID primitive.ObjectID
 }
 

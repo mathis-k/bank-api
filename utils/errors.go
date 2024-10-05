@@ -18,6 +18,8 @@ var (
 	ACCOUNT_NOT_FOUND        = fmt.Errorf("account not found")
 	INVALID_TRANSACTION_TYPE = fmt.Errorf("invalid transaction type")
 	INSUFFICIENT_FUNDS       = fmt.Errorf("insufficient funds")
+	MISSING_TRANSACTION_ID   = fmt.Errorf("missing transaction id")
+	MISSING_ACCOUNT_NUMBER   = fmt.Errorf("missing account number")
 )
 
 func ErrorMessage(w http.ResponseWriter, code int, error error) {

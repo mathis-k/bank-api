@@ -2,6 +2,7 @@ package models
 
 import (
 	"context"
+	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
 	"github.com/mathis-k/bank-api/middleware"
 	"github.com/mathis-k/bank-api/utils"
@@ -97,7 +98,12 @@ func (db *DB) CheckAccountPermissionMiddleware(next http.Handler) http.Handler {
 			utils.ErrorMessage(w, http.StatusPreconditionFailed, err)
 		}
 
-		accountNumber_str := r.URL.Query().Get("number")
+		vars := mux.Vars(r)
+		accountNumber_str, ok := vars["number"]
+		if !ok {
+			utils.ErrorMessage(w, http.StatusBadRequest, utils.MISSING_ACCOUNT_NUMBER)
+			return
+		}
 		accountNumber, err := utils.StringToUint64(accountNumber_str)
 		if err != nil {
 			utils.ErrorMessage(w, http.StatusBadRequest, err)

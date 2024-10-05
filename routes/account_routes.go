@@ -12,8 +12,8 @@ func RegisterAccountRoutes(router *mux.Router, controllers *controllers.APIServe
 	subRouter.HandleFunc("", controllers.GetAccounts).Methods("GET")
 	subRouter.HandleFunc("", controllers.CreateAccount).Methods("POST")
 
-	subsubRouter := subRouter.PathPrefix("/").Subrouter()
+	subsubRouter := subRouter.PathPrefix("/{number}").Subrouter()
 	subsubRouter.Use(controllers.Database.CheckAccountPermissionMiddleware)
-	subsubRouter.HandleFunc("{number}", controllers.GetAccountByNumber).Methods("GET")
-	subsubRouter.HandleFunc("{number}", controllers.DeleteAccount).Methods("DELETE")
+	subsubRouter.HandleFunc("", controllers.GetAccountByNumber).Methods("GET")
+	subsubRouter.HandleFunc("", controllers.DeleteAccount).Methods("DELETE")
 }

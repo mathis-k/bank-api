@@ -22,7 +22,7 @@ func (s *APIServer) GetAccounts(w http.ResponseWriter, r *http.Request) {
 	utils.ResponseMessage(w, http.StatusOK, accounts)
 }
 func (s *APIServer) GetAccountByNumber(w http.ResponseWriter, r *http.Request) {
-	account := r.Context().Value("account").(models.Account)
+	account := r.Context().Value("account").(*models.Account)
 	utils.ResponseMessage(w, http.StatusOK, account)
 }
 func (s *APIServer) CreateAccount(w http.ResponseWriter, r *http.Request) {
@@ -54,7 +54,7 @@ func (s *APIServer) DeleteAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	account := r.Context().Value("account").(models.Account)
+	account := r.Context().Value("account").(*models.Account)
 
 	err := s.Database.RemoveAccountFromUser(claims.User_Id, account.ID)
 	if err != nil {

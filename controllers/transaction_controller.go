@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"encoding/json"
+	"github.com/gorilla/mux"
 	"github.com/mathis-k/bank-api/middleware"
 	"github.com/mathis-k/bank-api/models"
 	"github.com/mathis-k/bank-api/utils"
@@ -42,7 +43,12 @@ func (s *APIServer) GetTransactionById(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	transactionId := r.URL.Query().Get("id")
+	vars := mux.Vars(r)
+	transactionId, ok := vars["id"]
+	if !ok {
+		utils.ErrorMessage(w, http.StatusBadRequest, utils.MISSING_TRANSACTION_ID)
+		return
+	}
 
 	transactions, err := s.Database.GetTransactionsFromUser(claims.User_Id)
 	if err != nil {
@@ -60,7 +66,7 @@ func (s *APIServer) GetTransactionById(w http.ResponseWriter, r *http.Request) {
 	utils.ErrorMessage(w, http.StatusNotFound, utils.TRANSACTION_NOT_FOUND)
 }
 func (s *APIServer) GetTransactionsFromAccount(w http.ResponseWriter, r *http.Request) {
-	account := r.Context().Value("account").(models.Account)
+	account := r.Context().Value("account").(*models.Account)
 	transactions, err := s.Database.GetTransactionsFromAccount(account.ID)
 	if err != nil {
 		utils.ErrorMessage(w, http.StatusInternalServerError, err)
@@ -70,14 +76,14 @@ func (s *APIServer) GetTransactionsFromAccount(w http.ResponseWriter, r *http.Re
 	utils.ResponseMessage(w, http.StatusOK, transactions)
 }
 func (s *APIServer) DepositToAccount(w http.ResponseWriter, r *http.Request) {
-	account := r.Context().Value("account").(models.Account)
+	account := r.Context().Value("account").(*models.Account)
 
 	var transactionRequest models.TransactionRequest
 	if err := json.NewDecoder(r.Body).Decode(&transactionRequest); err != nil {
 		utils.ErrorMessage(w, http.StatusBadRequest, err)
 		return
 	}
-	transactionRequest.Type = "DEPOSIT"
+	transactionRequest.Type = "Deposit"
 	transactionRequest.ToAccountID = account.ID
 	if err := models.ValidateTransactionRequest(&transactionRequest); err != nil {
 		utils.ErrorMessage(w, http.StatusBadRequest, err)
@@ -93,14 +99,14 @@ func (s *APIServer) DepositToAccount(w http.ResponseWriter, r *http.Request) {
 	utils.ResponseMessage(w, http.StatusCreated, transaction)
 }
 func (s *APIServer) WithdrawFromAccount(w http.ResponseWriter, r *http.Request) {
-	account := r.Context().Value("account").(models.Account)
+	account := r.Context().Value("account").(*models.Account)
 
 	var transactionRequest models.TransactionRequest
 	if err := json.NewDecoder(r.Body).Decode(&transactionRequest); err != nil {
 		utils.ErrorMessage(w, http.StatusBadRequest, err)
 		return
 	}
-	transactionRequest.Type = "WITHDRAW"
+	transactionRequest.Type = "Payout"
 	transactionRequest.FromAccount = account.ID
 	if err := models.ValidateTransactionRequest(&transactionRequest); err != nil {
 		utils.ErrorMessage(w, http.StatusBadRequest, err)
@@ -116,16 +122,21 @@ func (s *APIServer) WithdrawFromAccount(w http.ResponseWriter, r *http.Request) 
 	utils.ResponseMessage(w, http.StatusCreated, transaction)
 }
 func (s *APIServer) TransferBetweenAccounts(w http.ResponseWriter, r *http.Request) {
-	account := r.Context().Value("account").(models.Account)
+	account := r.Context().Value("account").(*models.Account)
 
 	var transactionRequest models.TransactionRequest
 	if err := json.NewDecoder(r.Body).Decode(&transactionRequest); err != nil {
 		utils.ErrorMessage(w, http.StatusBadRequest, err)
 		return
 	}
-	transactionRequest.Type = "TRANSFER"
+	transactionRequest.Type = "Transfer"
 	transactionRequest.FromAccount = account.ID
-	to_account, err := s.Database.GetAccountByAccountNumber(transactionRequest.ToAccount)
+	to_account_number, err := utils.StringToUint64(transactionRequest.ToAccount)
+	if err != nil {
+		utils.ErrorMessage(w, http.StatusBadRequest, err)
+		return
+	}
+	to_account, err := s.Database.GetAccountByAccountNumber(to_account_number)
 	if err != nil {
 		utils.ErrorMessage(w, http.StatusBadRequest, err)
 		return
