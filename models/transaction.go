@@ -2,6 +2,7 @@ package models
 
 import (
 	"context"
+	"errors"
 	"github.com/go-playground/validator/v10"
 	"github.com/mathis-k/bank-api/utils"
 	"go.mongodb.org/mongo-driver/bson"
@@ -105,13 +106,80 @@ func (db *DB) CreateTransaction(transactionRequest *TransactionRequest) (*Transa
 	return transaction, nil
 }
 func (db *DB) MakeDeposit(amount float64, toAccount primitive.ObjectID) error {
-	return nil // TODO
+	filter := primitive.M{"_id": toAccount}
+	update := primitive.M{
+		"$inc": primitive.M{"balance": amount},
+	}
+
+	_, err := db.Db.Collection("accounts").UpdateOne(context.TODO(), filter, update)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 func (db *DB) MakePayout(amount float64, fromAccount primitive.ObjectID) error {
-	return nil // TODO
+	filter := primitive.M{
+		"_id":     fromAccount,
+		"balance": primitive.M{"$gte": amount},
+	}
+
+	update := primitive.M{
+		"$inc": primitive.M{"balance": -amount},
+	}
+
+	account := db.Db.Collection("accounts").FindOneAndUpdate(context.TODO(), filter, update)
+	if account.Err() != nil {
+		if errors.Is(account.Err(), mongo.ErrNoDocuments) {
+			return utils.INSUFFICIENT_FUNDS
+		}
+		return account.Err()
+	}
+	return nil
 }
-func (db *DB) MakeTransfer(amount float64, fromAccount primitive.ObjectID, toAccount primitive.ObjectID) error {
-	return nil // TODO
+func (db *DB) MakeTransfer(amount float64, from_aId primitive.ObjectID, to_aId primitive.ObjectID) error {
+	session, err := db.Db.Client().StartSession()
+	if err != nil {
+		return err
+	}
+	defer session.EndSession(context.TODO())
+
+	callback := func(sessCtx mongo.SessionContext) (interface{}, error) {
+		from_filter := primitive.M{
+			"_id":     from_aId,
+			"balance": primitive.M{"$gte": amount},
+		}
+
+		to_filter := primitive.M{"_id": to_aId}
+
+		from_update := primitive.M{
+			"$inc": primitive.M{"balance": -amount},
+		}
+
+		to_update := primitive.M{
+			"$inc": primitive.M{"balance": amount},
+		}
+
+		fromAccount := db.Db.Collection("accounts").FindOneAndUpdate(sessCtx, from_filter, from_update)
+		if fromAccount.Err() != nil {
+			if errors.Is(fromAccount.Err(), mongo.ErrNoDocuments) {
+				return nil, utils.INSUFFICIENT_FUNDS
+			}
+			return nil, fromAccount.Err()
+		}
+
+		_, err = db.Db.Collection("accounts").UpdateOne(sessCtx, to_filter, to_update)
+		if err != nil {
+			return nil, err
+		}
+
+		return nil, nil
+	}
+
+	_, err = session.WithTransaction(context.TODO(), callback)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 func (db *DB) GetTransactionById(tId primitive.ObjectID) (*Transaction, error) {
 	transaction := &Transaction{}

@@ -17,6 +17,7 @@ var (
 	TRANSACTION_NOT_FOUND    = fmt.Errorf("transaction not found")
 	ACCOUNT_NOT_FOUND        = fmt.Errorf("account not found")
 	INVALID_TRANSACTION_TYPE = fmt.Errorf("invalid transaction type")
+	INSUFFICIENT_FUNDS       = fmt.Errorf("insufficient funds")
 )
 
 func ErrorMessage(w http.ResponseWriter, code int, error error) {
