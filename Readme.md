@@ -31,7 +31,7 @@ A simple JSON API server for a banking system built with Go (Golang), Gorilla/mu
 
    ```bash
     cp .env.example .env
-4. Install dependencies:
+4. Start the API:
 
    ```bash
    go run main.go
